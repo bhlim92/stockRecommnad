@@ -69,7 +69,7 @@
 
         .config-bar {
             display: grid;
-            grid-template-columns: 1.5fr 2fr 1fr;
+            grid-template-columns: 1.2fr 1.5fr 1.8fr 1.1fr;
             gap: 15px;
             margin-bottom: 20px;
             align-items: end;
@@ -315,8 +315,26 @@
 
         <!-- Settings & Configuration Card -->
         <div class="glass-card">
+            <div class="card-header" style="margin-bottom: 20px;">
+                <h2>⚙️ 스크리너 분석 설정 (Screener Settings)</h2>
+                <span class="card-subtitle">AI 스캔에 적용할 분석 엔진 모델과 API Key 및 타겟 시장 설정</span>
+            </div>
             <form id="screener-config-form">
                 <div class="config-bar">
+                    <!-- Gemini Model Selection -->
+                    <div class="input-group">
+                        <label for="screener-gemini-model">분석 AI 모델 (Gemini)</label>
+                        <select id="screener-gemini-model" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                            <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                            <option value="gemini-pro-latest">Gemini Pro Latest</option>
+                        </select>
+                    </div>
                     <!-- API Key (shared from LocalStorage) -->
                     <div class="input-group">
                         <label for="screener-api-key">Gemini API Key</label>
@@ -414,6 +432,7 @@
             ];
 
             // DOM Elements
+            const selectModel = document.getElementById("screener-gemini-model");
             const inputApiKey = document.getElementById("screener-api-key");
             const marketTabs = document.querySelectorAll(".market-tab");
             const btnStartScan = document.getElementById("btn-start-scan");
@@ -428,8 +447,9 @@
             const tableBody = document.getElementById("screener-table-body");
             const sortableHeaders = document.querySelectorAll("th.sortable");
 
-            // Sync API Key from Dashboard LocalStorage
+            // Sync API Key and Model from Dashboard LocalStorage
             inputApiKey.value = localStorage.getItem("gemini_api_key") || "";
+            selectModel.value = localStorage.getItem("gemini_model") || "gemini-2.5-flash";
 
             // Tab Click Handlers
             marketTabs.forEach(tab => {
@@ -504,11 +524,13 @@
 
             async function startScan() {
                 const apiKey = inputApiKey.value.trim();
+                const model = selectModel.value;
                 if (!apiKey) {
                     alert("Gemini API Key를 입력해 주십시오!");
                     return;
                 }
                 localStorage.setItem("gemini_api_key", apiKey);
+                localStorage.setItem("gemini_model", model);
 
                 btnStartScan.disabled = true;
                 btnStartScan.querySelector(".btn-loader").classList.remove("hidden");
@@ -525,7 +547,7 @@
                         body: JSON.stringify({
                             market: activeMarket,
                             api_key: apiKey,
-                            model: "gemini-2.5-flash" // standard
+                            model: model
                         })
                     });
 
