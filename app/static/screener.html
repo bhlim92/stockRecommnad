@@ -360,6 +360,48 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Database Collapsible Settings -->
+                <div class="db-settings-toggle" style="margin-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 15px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 0.9rem; color: #a0aec0; font-weight: 600;">📁 RDBMS 백업 저장 설정 (MariaDB / PostgreSQL)</span>
+                    <button type="button" id="btn-toggle-db-settings" class="btn-secondary" style="padding: 4px 10px; font-size: 0.8rem; height: auto;">설정 열기 🔓</button>
+                </div>
+                
+                <div id="db-settings-panel" class="hidden" style="margin-top: 15px; background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: end;">
+                        <div class="input-group">
+                            <label for="db-type">DB 종류 (Database Type)</label>
+                            <select id="db-type" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px; font-family: 'Orbitron', sans-serif;">
+                                <option value="">사용 안 함 (Disabled)</option>
+                                <option value="mariadb">MariaDB / MySQL</option>
+                                <option value="postgresql">PostgreSQL</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="db-host">DB 호스트 (Host)</label>
+                            <input type="text" id="db-host" placeholder="e.g. 127.0.0.1 or domain">
+                        </div>
+                        <div class="input-group">
+                            <label for="db-port">DB 포트 (Port)</label>
+                            <input type="number" id="db-port" placeholder="e.g. 3306 or 5432">
+                        </div>
+                        <div class="input-group">
+                            <label for="db-user">DB 사용자명 (Username)</label>
+                            <input type="text" id="db-user" placeholder="e.g. root">
+                        </div>
+                        <div class="input-group">
+                            <label for="db-password">DB 비밀번호 (Password)</label>
+                            <input type="password" id="db-password" placeholder="변경 시에만 입력">
+                        </div>
+                        <div class="input-group">
+                            <label for="db-name">DB 이름 (DB Name)</label>
+                            <input type="text" id="db-name" placeholder="e.g. stock_db">
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+                        <button type="button" id="btn-save-db" class="btn-primary" style="padding: 6px 15px; font-size: 0.85rem; height: auto; min-width: 150px;">DB 연결 및 저장</button>
+                    </div>
+                </div>
             </form>
 
             <!-- Real-time Progress -->
@@ -521,6 +563,90 @@
 
             // Load initial status on entry
             fetchStatus();
+            fetchDBSettings();
+
+            // DB Settings DOM elements and event handlers
+            const btnSaveDB = document.getElementById("btn-save-db");
+            const btnToggleDBSettings = document.getElementById("btn-toggle-db-settings");
+            const dbSettingsPanel = document.getElementById("db-settings-panel");
+
+            btnToggleDBSettings.addEventListener("click", () => {
+                const isHidden = dbSettingsPanel.classList.contains("hidden");
+                if (isHidden) {
+                    dbSettingsPanel.classList.remove("hidden");
+                    btnToggleDBSettings.innerText = "설정 닫기 🔒";
+                } else {
+                    dbSettingsPanel.classList.add("hidden");
+                    btnToggleDBSettings.innerText = "설정 열기 🔓";
+                }
+            });
+
+            async function fetchDBSettings() {
+                try {
+                    const response = await fetch("/api/settings/db");
+                    if (response.ok) {
+                        const data = await response.json();
+                        document.getElementById("db-type").value = data.db_type || "";
+                        document.getElementById("db-host").value = data.db_host || "";
+                        document.getElementById("db-port").value = data.db_port || "";
+                        document.getElementById("db-user").value = data.db_user || "";
+                        document.getElementById("db-name").value = data.db_name || "";
+                        document.getElementById("db-password").value = ""; // Masked on client side
+                        
+                        if (data.db_type) {
+                            addLogLine(`[SYSTEM] 데이터베이스 연동 감지됨 (${data.db_type.toUpperCase()})`);
+                        } else {
+                            addLogLine("[SYSTEM] 데이터베이스 연동이 비활성화 상태입니다. 화면에만 로컬 출력됩니다.");
+                        }
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch DB settings:", error);
+                }
+            }
+
+            btnSaveDB.addEventListener("click", async () => {
+                const dbType = document.getElementById("db-type").value;
+                const dbHost = document.getElementById("db-host").value;
+                const dbPort = document.getElementById("db-port").value;
+                const dbUser = document.getElementById("db-user").value;
+                const dbPassword = document.getElementById("db-password").value;
+                const dbName = document.getElementById("db-name").value;
+
+                btnSaveDB.disabled = true;
+                btnSaveDB.innerText = "연결 테스트 및 저장 중...";
+
+                try {
+                    const response = await fetch("/api/settings/db", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            db_type: dbType,
+                            db_host: dbHost,
+                            db_port: dbPort,
+                            db_user: dbUser,
+                            db_password: dbPassword,
+                            db_name: dbName
+                        })
+                    });
+
+                    const resData = await response.json();
+                    if (response.ok) {
+                        alert(resData.message);
+                        addLogLine(`[SUCCESS] ${resData.message}`);
+                        // Reload DB settings
+                        fetchDBSettings();
+                    } else {
+                        alert(`저장/연결 오류: ${resData.message}`);
+                        addLogLine(`[ERROR] DB 설정 오류: ${resData.message}`);
+                    }
+                } catch (error) {
+                    alert(`요청 처리 중 오류: ${error.message}`);
+                    addLogLine(`[ERROR] DB 요청 실패: ${error.message}`);
+                } finally {
+                    btnSaveDB.disabled = false;
+                    btnSaveDB.innerText = "DB 연결 및 저장";
+                }
+            });
 
             async function startScan() {
                 const apiKey = inputApiKey.value.trim();

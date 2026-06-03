@@ -708,6 +708,93 @@ def update_portfolio(data: Dict[str, Any] = Body(...)) -> JSONResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update portfolio: {str(e)}")
 
+@app.get("/api/settings/db")
+def get_db_settings() -> JSONResponse:
+    """Returns the current database connection settings (excluding password)."""
+    return JSONResponse(content={
+        "db_type": os.getenv("DB_TYPE", ""),
+        "db_host": os.getenv("DB_HOST", "localhost"),
+        "db_port": os.getenv("DB_PORT", "3306"),
+        "db_user": os.getenv("DB_USER", ""),
+        "db_name": os.getenv("DB_NAME", ""),
+        "has_password": bool(os.getenv("DB_PASSWORD"))
+    })
+
+@app.post("/api/settings/db")
+def update_db_settings(data: Dict[str, Any] = Body(...)) -> JSONResponse:
+    """Updates the DB configuration in memory, writes to .env, and reinitializes the connection."""
+    db_type = data.get("db_type", "").strip()
+    db_host = data.get("db_host", "").strip()
+    db_port = data.get("db_port", "").strip()
+    db_user = data.get("db_user", "").strip()
+    db_password = data.get("db_password", "").strip()
+    db_name = data.get("db_name", "").strip()
+
+    # 1. Update os.environ
+    os.environ["DB_TYPE"] = db_type
+    os.environ["DB_HOST"] = db_host
+    os.environ["DB_PORT"] = db_port
+    os.environ["DB_USER"] = db_user
+    if db_password or "db_password" in data:
+        os.environ["DB_PASSWORD"] = db_password
+    os.environ["DB_NAME"] = db_name
+
+    # 2. Write to .env file to persist changes
+    env_path = ".env"
+    lines = []
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        except Exception:
+            pass
+
+    # Create map of database keys
+    db_keys = ["DB_TYPE", "DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+    
+    # Filter out existing database config lines
+    new_lines = []
+    for line in lines:
+        is_db_line = False
+        for key in db_keys:
+            if line.startswith(f"{key}="):
+                is_db_line = True
+                break
+        if not is_db_line:
+            new_lines.append(line)
+            
+    # Append the new config parameters
+    new_lines.append("\n# --- DATABASE CONFIGURATION (UPDATED VIA WEB UI) ---\n")
+    new_lines.append(f"DB_TYPE={db_type}\n")
+    new_lines.append(f"DB_HOST={db_host}\n")
+    new_lines.append(f"DB_PORT={db_port}\n")
+    new_lines.append(f"DB_USER={db_user}\n")
+    if db_password or "db_password" in data:
+        new_lines.append(f"DB_PASSWORD={db_password}\n")
+    else:
+        # Keep old password from env if not provided
+        old_pw = os.getenv("DB_PASSWORD", "")
+        new_lines.append(f"DB_PASSWORD={old_pw}\n")
+    new_lines.append(f"DB_NAME={db_name}\n")
+
+    try:
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+    except Exception as e:
+        logger.warning(f"Could not write to .env (normal on serverless read-only filesystem): {str(e)}")
+
+    # 3. Reinitialize the DB connection
+    from app.database import init_db
+    success = init_db()
+
+    if not db_type:
+        return JSONResponse(content={"message": "데이터베이스 연동이 비활성화되었습니다.", "connected": False})
+        
+    if success:
+        return JSONResponse(content={"message": "데이터베이스 설정 저장 및 연결에 성공하였습니다!", "connected": True})
+    else:
+        return JSONResponse(status_code=400, content={"message": "데이터베이스 연결에 실패하였습니다. 설정을 확인해 주십시오.", "connected": False})
+
 @app.get("/api/reports")
 def get_reports_list() -> JSONResponse:
     """Returns a list of reports from Google Drive (synced) or local folder as fallback."""

@@ -181,3 +181,41 @@ def test_api_generate_rebalance_strategy_success(mock_model_class, mock_quant_sc
         assert response.status_code == 200
         assert "rebalance_strategy.md" in response.json()["filename"]
         assert response.json()["content"] == "AI Rebalance Strategy Content"
+
+def test_db_settings_api():
+    # 1. Test GET /api/settings/db
+    with patch.dict(os.environ, {
+        "DB_TYPE": "mariadb",
+        "DB_HOST": "127.0.0.1",
+        "DB_PORT": "3306",
+        "DB_USER": "root",
+        "DB_PASSWORD": "cbm",
+        "DB_NAME": "stock_db"
+    }):
+        response = client.get("/api/settings/db")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["db_type"] == "mariadb"
+        assert data["db_host"] == "127.0.0.1"
+        assert data["db_port"] == "3306"
+        assert data["db_user"] == "root"
+        assert data["db_name"] == "stock_db"
+        assert data["has_password"] is True
+
+    # 2. Test POST /api/settings/db (Success scenario)
+    with patch("app.database.init_db", return_value=True), \
+         patch("builtins.open", MagicMock()), \
+         patch("app.web_server.os.path.exists", return_value=True):
+        
+        payload = {
+            "db_type": "mariadb",
+            "db_host": "127.0.0.1",
+            "db_port": "3306",
+            "db_user": "root",
+            "db_password": "cbm",
+            "db_name": "stock_db"
+        }
+        response = client.post("/api/settings/db", json=payload)
+        assert response.status_code == 200
+        assert "연결에 성공하였습니다" in response.json()["message"]
+        assert response.json()["connected"] is True
