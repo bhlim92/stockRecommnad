@@ -1,0 +1,51 @@
+# ==============================================================================
+# Environment Configuration Template for Stock Discovery & Portfolio Rebalancing
+# ==============================================================================
+
+# --- LLM CONFIGURATION ---
+# Gemini API Key for summarizing YouTube videos and generating investment reports.
+# Obtain your key from Google AI Studio: https://aistudio.google.com/
+GEMINI_API_KEY=AIzaSyDs-ISMlkc4oSd1iF3LZEdi9pVBgAPX2Nw
+
+# --- GOOGLE DRIVE INTEGRATION ---
+# Path to your Google Cloud Service Account credentials JSON file.
+# Keep this file secure, locate it outside source control, or add it to .gitignore.
+GOOGLE_APPLICATION_CREDENTIALS=c:\Users\samsung\proj\stockRecommnad\config\gdrive-service-account.json
+
+# The ID of the Google Drive folder where daily reports should be uploaded.
+# Leave blank to upload to the root of your Google Drive.
+GOOGLE_DRIVE_FOLDER_ID=G:\내 드라이브\투자\주식\reports
+
+# --- WATCHLIST CONFIGURATION ---
+# (Optional) Comma-separated list of tickers to override defaults in config.py
+# Example: AAPL,MSFT,NVDA for US and 005930.KS,000660.KS for Korea
+US_WATCHLIST=AAPL,MSFT,NVDA,AMZN,GOOGL
+KR_WATCHLIST=005930.KS,000660.KS,035420.KS
+
+# --- LOGGING SETTINGS ---
+# Logging levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOG_LEVEL=INFO
+# Path to store the application log file
+LOG_FILE_PATH=c:\Users\samsung\proj\stockRecommnad\logs\app.log
+# Maximum log file size in bytes before rotating (5MB = 5242880)
+LOG_MAX_BYTES=5242880
+# Number of backup log files to retain during rotation
+LOG_BACKUP_COUNT=5
+
+# --- PORTFOLIO SETTINGS ---
+# Path to the portfolio database JSON file
+PORTFOLIO_FILE_PATH=portfolio.json
+
+# --- GOOGLE SPREADSHEET PORTFOLIO ---
+PORTFOLIO_SPREADSHEET_ID=your_spreadsheet_id_here
+PORTFOLIO_SPREADSHEET_GID=your_sheet_gid_here
+
+# --- DATABASE CONFIGURATION ---
+# Supported DB types: mariadb, postgresql (Leave empty to disable DB backup integration)
+DB_TYPE=mariadb
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password_here
+DB_NAME=stock_db
+

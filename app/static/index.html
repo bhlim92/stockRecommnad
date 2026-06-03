@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>퀀트 주식 추천 & 리밸런싱 대시보드 (v2.5)</title>
+    <!-- Google Fonts Inter & Orbitron for Tech Theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css?v=2.5">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="pulse-ring"></span>
+                <h1>ANTIGRAVITY <span>QUANT</span> (v2.5)</h1>
+            </div>
+            <div class="system-status">
+                <a href="/screener.html" target="_blank" class="btn-primary" style="text-decoration: none; padding: 6px 12px; font-size: 11px; margin-right: 15px; display: inline-flex; align-items: center; border-radius: 4px;">종목 스크리너 🔍</a>
+                <span class="status-label">서버 상태</span>
+                <span class="status-badge status-idle" id="server-status-badge">대기중 (IDLE)</span>
+                <button class="btn-close" id="btn-logout" style="margin-left: 15px; padding: 6px 12px; font-size: 11px;">로그아웃</button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Section -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Panel: Pipeline Control & Progress -->
+            <section class="glass-card control-panel">
+                <div class="card-header">
+                    <h2>자동 분석 엔진 제어</h2>
+                    <span class="card-subtitle">실시간 주식 발굴 및 자산배분 계산</span>
+                </div>
+                
+                <div class="control-actions">
+                    <button class="btn-primary" id="btn-run-pipeline">
+                        <span class="btn-text">지금 분석 시작하기 (ON-DEMAND)</span>
+                        <span class="btn-loader hidden"></span>
+                    </button>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-labels">
+                        <span class="step-label" id="current-step-text">대기 중...</span>
+                        <span class="progress-percent" id="progress-percent-text">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="steps-list">
+                    <div class="step-item" id="step-ingesting"><span class="step-dot"></span> 1. 금융 데이터 수집</div>
+                    <div class="step-item" id="step-news"><span class="step-dot"></span> 2. 마켓 뉴스 분석</div>
+                    <div class="step-item" id="step-youtube"><span class="step-dot"></span> 3. 유튜브 전문가 요약</div>
+                    <div class="step-item" id="step-recommending"><span class="step-dot"></span> 4. AI 추천 보고서 생성</div>
+                    <div class="step-item" id="step-uploading"><span class="step-dot"></span> 5. 구글 드라이브 업로드</div>
+                </div>
+
+                <!-- Step Caveats Display Panel -->
+                <div class="caveats-box" id="caveats-panel">
+                    <div class="caveats-title">
+                        <span class="glowing-dot"></span>
+                        <h4>실시간 단계별 분석 유의점</h4>
+                    </div>
+                    <div class="caveats-content" id="caveats-text">
+                        자동 분석이 대기 중입니다. '지금 분석 시작하기' 버튼을 눌러 실시간 분석을 진행하십시오.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Live Console Logs -->
+            <section class="glass-card terminal-panel">
+                <div class="card-header">
+                    <h2>애플리케이션 실시간 로그</h2>
+                    <span class="card-subtitle">시스템 파이프라인 정밀 트레이싱</span>
+                </div>
+                <div class="terminal-body" id="log-terminal">
+                    <div class="terminal-line system-line">[SYSTEM] 터미널 초기화 완료. 이력 조회를 시작합니다.</div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Real-time Portfolio Holdings Card (Full-width) -->
+        <div class="dashboard-grid full-width-grid" style="grid-template-columns: 1fr;">
+            <section class="glass-card portfolio-holdings-panel">
+                <div class="card-header">
+                    <h2>실시간 포트폴리오 보유 종목 현황</h2>
+                    <span class="card-subtitle">구글 스프레드시트 매매일지 연동 데이터 (보유수량 &gt; 0)</span>
+                </div>
+                
+                <!-- Portfolio Summary Bar (Aggregates) -->
+                <div class="portfolio-summary-bar" id="portfolio-summary-bar"></div>
+                
+                <div class="holdings-table-container">
+                    <table class="holdings-table" id="holdings-table">
+                        <thead>
+                            <tr>
+                                <th>티커</th>
+                                <th>종목명</th>
+                                <th>보유량</th>
+                                <th>현재가</th>
+                                <th>매수평균가</th>
+                                <th>투자금액</th>
+                                <th>평가금액</th>
+                                <th>평가손익</th>
+                                <th>수익률</th>
+                                <th>투자 비중</th>
+                                <th>평가 비중</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holdings-list">
+                            <tr>
+                                <td colspan="11" class="loading-holdings">구글 드라이브로부터 실시간 데이터를 가져오는 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Real-time AI Portfolio Rebalancing Strategy Card (Full-width) -->
+        <div class="dashboard-grid full-width-grid" style="grid-template-columns: 1fr; margin-top: 20px;">
+            <section class="glass-card rebalance-strategy-panel">
+                <div class="card-header rebalance-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <h2>실시간 AI 포트폴리오 리밸런싱 전략</h2>
+                        <span class="card-subtitle">실시간 보유 종목과 최신 추천 보고서를 대조하여 수립한 리밸런싱 제안</span>
+                    </div>
+                    <button class="btn-primary" id="btn-generate-rebalance">
+                        <span class="btn-text">AI 리밸런싱 전략 생성 및 업데이트</span>
+                        <span class="btn-loader hidden"></span>
+                    </button>
+                </div>
+                
+                <div class="rebalance-content-area" style="margin-top: 20px;">
+                    <div class="rebalance-markdown-content" id="rebalance-strategy-display" style="padding: 15px; border-radius: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); min-height: 100px; color: var(--text-muted); font-size: 14px; line-height: 1.6;">
+                        <div class="loading-holdings" style="text-align: center; padding: 30px 0;">아직 생성된 리밸런싱 전략이 없습니다. 위의 버튼을 클릭하여 생성하십시오.</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="dashboard-grid secondary-grid">
+            <!-- Left Bottom Panel: Gemini Settings -->
+            <section class="glass-card portfolio-panel">
+                <div class="card-header">
+                    <h2>Gemini AI 분석 모델 설정</h2>
+                    <span class="card-subtitle">분석 엔진에 사용할 모델과 개인 API Key 설정</span>
+                </div>
+                <form id="portfolio-form" class="portfolio-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="select-gemini-model">분석 AI 모델 (Gemini)</label>
+                            <select id="select-gemini-model">
+                                <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
+                                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                                <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                                <option value="gemini-pro-latest">Gemini Pro Latest</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-gemini-api-key">Gemini API Key</label>
+                            <input type="password" id="input-gemini-api-key" placeholder="API Key 입력 (브라우저 로컬 저장)">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-secondary" id="btn-save-portfolio">설정 저장 및 반영</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Right Bottom Panel: Reports Archiver -->
+            <section class="glass-card reports-panel">
+                <div class="card-header">
+                    <h2>종목 발굴 보고서 보관소</h2>
+                    <span class="card-subtitle">로컬에 저장된 일일 투자 추천 문서 목록</span>
+                </div>
+                <div class="reports-archiver-container">
+                    <ul class="reports-list-items" id="reports-list">
+                        <li class="empty-item">보고서가 없습니다.</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+        <!-- Report Content Viewer Modal/Card -->
+        <section class="glass-card report-viewer-card hidden" id="report-viewer-section">
+            <div class="card-header report-viewer-header">
+                <div>
+                    <h2 id="viewing-report-title">투자 리포트 상세 보기</h2>
+                    <span class="card-subtitle" id="viewing-report-subtitle">로컬 마크다운 파일 뷰어</span>
+                </div>
+                <button class="btn-close" id="btn-close-viewer">닫기</button>
+            </div>
+            <div class="report-markdown-content" id="report-md-display">
+                <!-- Markdown renders here -->
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>© 2026 Antigravity Quant Team. All Rights Reserved. Built with FastAPI & Vanilla JS.</p>
+        </footer>
+    </div>
+    <script src="/app.js?v=2.5"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+# ==============================================================================
+# Dependencies for Stock Discovery & Portfolio Rebalancing System
+# ==============================================================================
+
+# Data Fetching & Analysis
+yfinance>=0.2.38
+finance-datareader>=0.9.80
+pandas>=2.2.1
+requests>=2.31.0
+beautifulsoup4>=4.12.3
+lxml>=5.1.0
+
+# YouTube RSS and Transcripts
+youtube-transcript-api>=0.6.2
+
+# Large Language Model (Google Gemini API)
+google-generativeai>=0.4.1
+python-dotenv>=1.0.1
+
+# Google Drive API Client
+google-api-python-client>=2.122.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+
+# Testing & Quality Assurance
+pytest>=8.0.2
+
+# Web Server & Live Dashboard
+fastapi>=0.110.0
+uvicorn>=0.28.0
+
+# Database Integration (MariaDB & PostgreSQL)
+SQLAlchemy>=2.0.28
+PyMySQL>=1.1.0
+psycopg2-binary>=2.9.9
+

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>퀀트 주식 발굴 대시보드 - 로그인</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        .login-card {
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .login-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .login-logo h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 24px;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+        }
+
+        .login-logo h1 span {
+            color: var(--accent-cyan);
+        }
+
+        .login-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 35px;
+            line-height: 1.6;
+        }
+
+        .google-btn-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            color: var(--accent-red);
+            font-size: 13px;
+            margin-top: 15px;
+            min-height: 20px;
+            font-weight: 500;
+        }
+
+        .login-footer {
+            margin-top: 40px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-card login-card">
+        <div class="login-logo">
+            <div class="pulse-ring"></div>
+            <h1>ANTIGRAVITY <span>QUANT</span></h1>
+        </div>
+        
+        <p class="login-description">
+            인공지능 기반 주식 분석 및 리밸런싱 대시보드입니다.<br>
+            서비스 이용을 위해 구글 계정으로 로그인해 주세요.
+        </p>
+
+        <!-- Google Login Button -->
+        <div class="google-btn-container">
+            <div id="g_id_onload"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="filled_dark"
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+        </div>
+
+        <div id="error-box" class="error-message"></div>
+
+        <div class="login-footer">
+            <p>© 2026 Antigravity Quant Team. Authorized Users Only.</p>
+        </div>
+    </div>
+
+    <script>
+        // Fetch and set the Google Client ID dynamically on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch('/api/auth/config')
+                .then(res => res.json())
+                .then(data => {
+                    const clientId = data.client_id;
+                    if (clientId) {
+                        const loginDiv = document.getElementById('g_id_onload');
+                        loginDiv.setAttribute('data-client_id', clientId);
+                        // Re-initialize Google Sign-In with the dynamic client_id
+                        google.accounts.id.initialize({
+                            client_id: clientId,
+                            callback: handleCredentialResponse,
+                            context: 'signin'
+                        });
+                        google.accounts.id.renderButton(
+                            document.querySelector('.g_id_signin'),
+                            { theme: 'filled_dark', size: 'large', text: 'signin_with' }
+                        );
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to load Google auth configuration:', err);
+                });
+        });
+
+        function handleCredentialResponse(response) {
+            const errorBox = document.getElementById('error-box');
+            errorBox.innerText = '';
+
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ credential: response.credential })
+            })
+            .then(res => res.json().then(data => ({ status: res.status, data })))
+            .then(result => {
+                if (result.status === 200) {
+                    window.location.href = '/';
+                } else {
+                    errorBox.innerText = result.data.detail || '로그인에 실패했습니다. 권한을 확인하세요.';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                errorBox.innerText = '서버 통신 중 오류가 발생했습니다.';
+            });
+        }
+    </script>
+</body>
+</html>

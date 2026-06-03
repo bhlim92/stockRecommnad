@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>퀀트 AI 종목 스크리너 | Quantum Dashboard (v2.5)</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Main Style Link -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Screener Specific Overrides */
+        body {
+            background: linear-gradient(135deg, #070913 0%, #0c0f24 100%);
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .screener-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .screener-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(0, 242, 254, 0.2);
+            padding-bottom: 15px;
+        }
+
+        .screener-title h1 {
+            font-family: 'Inter', 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-back-dashboard {
+            font-family: 'Inter', sans-serif;
+            background: rgba(13, 17, 38, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back-dashboard:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .config-bar {
+            display: grid;
+            grid-template-columns: 1.5fr 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: end;
+        }
+
+        @media (max-width: 900px) {
+            .config-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .market-tabs {
+            display: flex;
+            gap: 10px;
+            background: rgba(13, 17, 38, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 5px;
+            border-radius: 10px;
+        }
+
+        .market-tab {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #a0aec0;
+            padding: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .market-tab.active {
+            background: linear-gradient(135deg, var(--accent-cyan), rgba(13, 148, 136, 0.5));
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+        }
+
+        .progress-section {
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-header-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-bar-indicator {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            box-shadow: 0 0 10px var(--accent-cyan);
+            border-radius: 6px;
+            transition: width 0.4s ease;
+        }
+
+        /* Sparkline Styling */
+        .sparkline-container {
+            display: inline-block;
+            vertical-align: middle;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            width: 124px;
+            height: 38px;
+        }
+
+        .sparkline-svg {
+            display: block;
+        }
+
+        .sparkline-svg rect {
+            transition: height 0.3s ease, y 0.3s ease;
+        }
+
+        .sparkline-svg path {
+            transition: d 0.3s ease;
+        }
+
+        /* Sorting Indicators */
+        th.sortable {
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            padding-right: 25px !important;
+            transition: background 0.2s ease;
+        }
+
+        th.sortable:hover {
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .sort-badge {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7rem;
+            font-family: 'Roboto Mono', monospace;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #a0aec0;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .sort-badge.primary {
+            background: rgba(0, 242, 254, 0.2);
+            border: 1px solid rgba(0, 242, 254, 0.4);
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .sort-badge.secondary {
+            background: rgba(157, 23, 77, 0.2);
+            border: 1px solid rgba(157, 23, 77, 0.4);
+            color: #f472b6;
+        }
+
+        /* Filter Controls */
+        .filter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 20px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(13, 17, 38, 0.6);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-cyan);
+            outline: none;
+            box-shadow: 0 0 8px rgba(0, 242, 254, 0.3);
+        }
+
+        /* Screener Terminal */
+        .screener-terminal {
+            background: rgba(5, 7, 18, 0.95);
+            border: 1px solid rgba(0, 242, 254, 0.15);
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            max-height: 80px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+        
+        .screener-terminal::-webkit-scrollbar {
+            width: 6px;
+        }
+        .screener-terminal::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 254, 0.3);
+            border-radius: 3px;
+        }
+
+        /* Score colors styling */
+        .score-val {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .score-val.high {
+            color: var(--accent-green);
+            text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+        }
+
+        .score-val.medium {
+            color: #f59e0b;
+        }
+
+        .score-val.low {
+            color: var(--accent-red);
+        }
+
+        .total-score-val {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="screener-container">
+        
+        <!-- Header -->
+        <div class="screener-header">
+            <div class="screener-title">
+                <h1>🔍 퀀트 AI 종목 스크리너 (v2.5)</h1>
+            </div>
+            <a href="/" class="btn-back-dashboard">
+                <span>◀ 대시보드로 돌아가기</span>
+            </a>
+        </div>
+
+        <!-- Settings & Configuration Card -->
+        <div class="glass-card">
+            <form id="screener-config-form">
+                <div class="config-bar">
+                    <!-- API Key (shared from LocalStorage) -->
+                    <div class="input-group">
+                        <label for="screener-api-key">Gemini API Key</label>
+                        <input type="password" id="screener-api-key" placeholder="API Key가 대시보드와 자동 동기화됩니다" required>
+                    </div>
+                    <!-- Market Choice -->
+                    <div class="input-group">
+                        <label>대상 주식 시장</label>
+                        <div class="market-tabs">
+                            <button type="button" class="market-tab active" data-market="sp500">S&P 500 (US)</button>
+                            <button type="button" class="market-tab" data-market="kospi200">KOSPI 200 (KR)</button>
+                            <button type="button" class="market-tab" data-market="kosdaq">KOSDAQ (KR)</button>
+                        </div>
+                    </div>
+                    <!-- Actions -->
+                    <div class="input-group flex-row" style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button type="button" id="btn-start-scan" class="btn-primary" style="flex: 1;">
+                            <span class="btn-loader hidden"></span>
+                            <span class="btn-text">스캔 시작</span>
+                        </button>
+                        <button type="button" id="btn-stop-scan" class="btn-danger hidden" style="flex: 1;">
+                            <span>스캔 중지</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Real-time Progress -->
+            <div class="progress-section" id="screener-progress-section">
+                <div class="progress-header-info">
+                    <span id="scan-progress-text">분석 수집 준비 중...</span>
+                    <span id="scan-ratio-text">0 / 0 종목</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-indicator" id="scan-progress-bar"></div>
+                </div>
+            </div>
+
+            <!-- Mini Log Monitor -->
+            <div class="screener-terminal" id="screener-log-terminal">
+                [SYSTEM] 대기 중... '스캔 시작' 버튼을 누르면 전 종목 스크리닝이 기동됩니다.
+            </div>
+        </div>
+
+        <!-- Filter and Search Row -->
+        <div class="filter-row" style="margin-top: 25px;">
+            <div class="search-wrapper">
+                <input type="text" id="screener-search" class="search-input" placeholder="종목명 또는 티커로 필터링...">
+            </div>
+            <div style="font-size: 0.9rem; color: #a0aec0; font-family: 'Roboto Mono', monospace;" id="filtered-count-text">
+                총 0개 종목 로드됨
+            </div>
+        </div>
+
+        <!-- Results Table Card -->
+        <div class="glass-card table-container" style="padding: 0; margin-top: 10px;">
+            <table class="holdings-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">순위</th>
+                        <th style="width: 90px;">티커</th>
+                        <th>종목명</th>
+                        <th class="sortable" data-col="entry_score" style="width: 130px;">진입 점수 <span id="sort-entry-indicator"></span></th>
+                        <th class="sortable" data-col="eval_score" style="width: 130px;">평가 점수 <span id="sort-eval-indicator"></span></th>
+                        <th class="sortable" data-col="total_score" style="width: 120px;">종합 점수 <span id="sort-total-indicator"></span></th>
+                        <th style="width: 150px; text-align: center;">최근 20일 추이</th>
+                        <th style="width: 180px; text-align: center;">분석 일시</th>
+                        <th>핵심 분석 근거</th>
+                    </tr>
+                </thead>
+                <tbody id="screener-table-body">
+                    <tr>
+                        <td colspan="9" class="loading-holdings" style="text-align: center; padding: 40px 0; color: #718096;">
+                            분석을 실행하여 순위 테이블을 로드해 주십시오. (완료 시 DB에 저장된 최종 리스트가 한 번에 출력됩니다)
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const API_START = "/api/screener/start";
+            const API_STATUS = "/api/screener/status";
+            const API_STOP = "/api/screener/stop";
+
+            // State
+            let allResults = [];
+            let activeMarket = "sp500";
+            let pollInterval = null;
+            let currentScanStatus = "idle";
+            let sortingStack = [
+                { col: "total_score", dir: "desc", priority: "primary" } // default sorting
+            ];
+
+            // DOM Elements
+            const inputApiKey = document.getElementById("screener-api-key");
+            const marketTabs = document.querySelectorAll(".market-tab");
+            const btnStartScan = document.getElementById("btn-start-scan");
+            const btnStopScan = document.getElementById("btn-stop-scan");
+            const progressSection = document.getElementById("screener-progress-section");
+            const progressBar = document.getElementById("scan-progress-bar");
+            const progressText = document.getElementById("scan-progress-text");
+            const progressRatio = document.getElementById("scan-ratio-text");
+            const logTerminal = document.getElementById("screener-log-terminal");
+            const searchInput = document.getElementById("screener-search");
+            const filteredCount = document.getElementById("filtered-count-text");
+            const tableBody = document.getElementById("screener-table-body");
+            const sortableHeaders = document.querySelectorAll("th.sortable");
+
+            // Sync API Key from Dashboard LocalStorage
+            inputApiKey.value = localStorage.getItem("gemini_api_key") || "";
+
+            // Tab Click Handlers
+            marketTabs.forEach(tab => {
+                tab.addEventListener("click", () => {
+                    if (btnStartScan.disabled) return; // Prevent tab change during active scan
+                    marketTabs.forEach(t => t.classList.remove("active"));
+                    tab.classList.add("active");
+                    activeMarket = tab.getAttribute("data-market");
+                });
+            });
+
+            // Input filter listener
+            searchInput.addEventListener("input", renderTable);
+
+            // Sorting Headers click handler
+            sortableHeaders.forEach(th => {
+                th.addEventListener("click", () => {
+                    const col = th.getAttribute("data-col");
+                    
+                    // Multi-level Nested Sorting Logic
+                    // Detect if clicking the same column, toggle dir. Otherwise make it primary.
+                    const existingPrimary = sortingStack.find(s => s.priority === "primary");
+                    let nextDir = "desc"; // default
+                    
+                    if (existingPrimary && existingPrimary.col === col) {
+                        nextDir = existingPrimary.dir === "desc" ? "asc" : "desc";
+                    }
+
+                    // Rebuild stack:
+                    // Clicked column becomes primary. The previous primary becomes secondary.
+                    const newStack = [{ col: col, dir: nextDir, priority: "primary" }];
+                    if (existingPrimary && existingPrimary.col !== col) {
+                        newStack.push({ col: existingPrimary.col, dir: existingPrimary.dir, priority: "secondary" });
+                    }
+                    
+                    sortingStack = newStack;
+                    
+                    // Render UI indicators and sort table
+                    updateSortHeadersUI();
+                    renderTable();
+                });
+            });
+
+            function updateSortHeadersUI() {
+                // Clear indicators
+                document.getElementById("sort-entry-indicator").innerHTML = "";
+                document.getElementById("sort-eval-indicator").innerHTML = "";
+                document.getElementById("sort-total-indicator").innerHTML = "";
+
+                sortingStack.forEach(s => {
+                    const icon = s.dir === "desc" ? "▼" : "▲";
+                    const badgeClass = s.priority === "primary" ? "sort-badge primary" : "sort-badge secondary";
+                    const orderNum = s.priority === "primary" ? "1" : "2";
+                    const html = `<span class="${badgeClass}">${icon} ${orderNum}</span>`;
+                    
+                    const indicatorEl = document.getElementById(`sort-${s.col.split("_")[0]}-indicator`);
+                    if (indicatorEl) {
+                        indicatorEl.innerHTML = html;
+                    }
+                });
+            }
+
+            // Start & Stop triggers
+            btnStartScan.addEventListener("click", startScan);
+            btnStopScan.addEventListener("click", stopScan);
+
+            // Initialize sorting UI
+            updateSortHeadersUI();
+
+            // Load initial status on entry
+            fetchStatus();
+
+            async function startScan() {
+                const apiKey = inputApiKey.value.trim();
+                if (!apiKey) {
+                    alert("Gemini API Key를 입력해 주십시오!");
+                    return;
+                }
+                localStorage.setItem("gemini_api_key", apiKey);
+
+                btnStartScan.disabled = true;
+                btnStartScan.querySelector(".btn-loader").classList.remove("hidden");
+                btnStartScan.querySelector(".btn-text").innerText = "스캔 준비 중...";
+                btnStopScan.classList.remove("hidden");
+                progressSection.classList.add("active");
+                logTerminal.innerHTML = "";
+                addLogLine("[SYSTEM] 백엔드에 종목 스캔을 트리거하는 중...");
+
+                try {
+                    const response = await fetch(API_START, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            market: activeMarket,
+                            api_key: apiKey,
+                            model: "gemini-2.5-flash" // standard
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.detail || err.error || "스캔 시작 실패");
+                    }
+
+                    addLogLine("[SUCCESS] 백그라운드 스레드 기동 성공. 실시간 데이터 폴링 시작.");
+                    allResults = [];
+                    startPolling();
+                } catch (error) {
+                    alert(`스캔 오류: ${error.message}`);
+                    resetUI();
+                }
+            }
+
+            async function stopScan() {
+                try {
+                    const response = await fetch(API_STOP, { method: "POST" });
+                    if (response.ok) {
+                        addLogLine("[SYSTEM] 스캔 중단 신호를 보냈습니다. 즉시 멈춤 작업이 진행됩니다.");
+                    }
+                } catch (error) {
+                    console.error("Stop error:", error);
+                }
+            }
+
+            function startPolling() {
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(fetchStatus, 1500);
+            }
+
+            function stopPolling() {
+                if (pollInterval) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                }
+            }
+
+            async function fetchStatus() {
+                try {
+                    const response = await fetch(API_STATUS);
+                    if (!response.ok) throw new Error("진행 상황 조회 실패");
+                    
+                    const data = await response.json();
+                    updateUI(data);
+                } catch (error) {
+                    console.error("Status fetch error:", error);
+                }
+            }
+
+            function addLogLine(text) {
+                const div = document.createElement("div");
+                div.className = "terminal-line";
+                if (text.includes("SUCCESS")) div.style.color = "var(--accent-green)";
+                if (text.includes("WARNING")) div.style.color = "#f59e0b";
+                if (text.includes("ERROR")) div.style.color = "var(--accent-red)";
+                
+                div.innerText = text;
+                logTerminal.appendChild(div);
+                logTerminal.scrollTop = logTerminal.scrollHeight;
+            }
+
+            function updateUI(data) {
+                const { status, progress, market, current, total, results, logs } = data;
+                currentScanStatus = status;
+                
+                // 1. Logs sync
+                logTerminal.innerHTML = "";
+                logs.forEach(l => {
+                    const div = document.createElement("div");
+                    div.className = "terminal-line";
+                    if (l.includes("[SUCCESS]")) div.style.color = "var(--accent-green)";
+                    else if (l.includes("[WARNING]")) div.style.color = "#f59e0b";
+                    else if (l.includes("[ERROR]")) div.style.color = "var(--accent-red)";
+                    div.innerText = l;
+                    logTerminal.appendChild(div);
+                });
+                logTerminal.scrollTop = logTerminal.scrollHeight;
+
+                // 2. State syncing
+                allResults = results;
+                activeMarket = market || activeMarket;
+
+                // Update market tab UI active state to reflect backend choice
+                if (status === "running") {
+                    marketTabs.forEach(tab => {
+                        if (tab.getAttribute("data-market") === market) {
+                            tab.classList.add("active");
+                        } else {
+                            tab.classList.remove("active");
+                        }
+                    });
+                }
+
+                // 3. Render Table
+                renderTable();
+
+                // 4. Progress and controls status
+                if (status === "running") {
+                    progressSection.classList.add("active");
+                    btnStopScan.classList.remove("hidden");
+                    btnStartScan.disabled = true;
+                    btnStartScan.querySelector(".btn-loader").classList.remove("hidden");
+                    btnStartScan.querySelector(".btn-text").innerText = "종목 스캔 중...";
+                    
+                    progressBar.style.width = `${progress}%`;
+                    progressText.innerText = `종목 정밀 연산 및 분석 중${data.current_ticker ? " (티커: " + data.current_ticker + ")" : ""}...`;
+                    progressRatio.innerText = `${current} / ${total} 종목`;
+                    startPolling();
+                } else {
+                    resetUI();
+                    stopPolling();
+                    if (status === "done") {
+                        progressBar.style.width = `100%`;
+                        progressText.innerText = "전 종목 퀀트 스캔 완료!";
+                        progressRatio.innerText = `${results.length} / ${total} 종목`;
+                        progressSection.classList.add("active");
+                    } else if (status === "failed") {
+                        progressBar.style.width = `0%`;
+                        progressText.innerText = "스캔 도중 예외 발생으로 중단됨";
+                        progressSection.classList.add("active");
+                    }
+                }
+            }
+
+            function resetUI() {
+                btnStartScan.disabled = false;
+                btnStartScan.querySelector(".btn-loader").classList.add("hidden");
+                btnStartScan.querySelector(".btn-text").innerText = "스캔 시작";
+                btnStopScan.classList.add("hidden");
+            }
+
+            // Multi-level Nested Sort Function
+            function sortResults(results) {
+                if (sortingStack.length === 0) return results;
+
+                const primary = sortingStack.find(s => s.priority === "primary");
+                const secondary = sortingStack.find(s => s.priority === "secondary");
+
+                return [...results].sort((a, b) => {
+                    // Compare primary column
+                    let primaryValA = a[primary.col];
+                    let primaryValB = b[primary.col];
+
+                    let diff = primaryValA - primaryValB;
+                    if (primary.dir === "desc") {
+                        diff = primaryValB - primaryValA;
+                    }
+
+                    if (diff !== 0) return diff;
+
+                    // If primary values are equal, sort by secondary column
+                    if (secondary) {
+                        let secondaryValA = a[secondary.col];
+                        let secondaryValB = b[secondary.col];
+                        let secDiff = secondaryValA - secondaryValB;
+                        if (secondary.dir === "desc") {
+                            secDiff = secondaryValB - secondaryValA;
+                        }
+                        return secDiff;
+                    }
+
+                    return 0;
+                });
+            }
+
+            // Renders SVG Sparklines
+            function generateSparklineSVG(prices, volumes) {
+                if (!prices || prices.length < 2) return "";
+                
+                const width = 120;
+                const height = 34;
+                const padding = 2;
+
+                // 1. Scale prices
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                const priceRange = maxPrice - minPrice || 1;
+
+                const points = prices.map((price, idx) => {
+                    const x = padding + (idx / (prices.length - 1)) * (width - padding * 2);
+                    const y = height - padding - ((price - minPrice) / priceRange) * (height - padding * 2);
+                    return `${x},${y}`;
+                });
+                
+                const pathData = `M ${points.join(" L ")}`;
+
+                // 2. Scale volumes
+                const maxVol = Math.max(...volumes) || 1;
+                const barWidth = Math.floor((width - padding * 2) / volumes.length) - 1;
+                
+                let barsHTML = "";
+                volumes.forEach((vol, idx) => {
+                    const x = padding + idx * (barWidth + 1);
+                    const barHeight = (vol / maxVol) * (height * 0.45); // Limit bars to 45% height of sparkline
+                    const y = height - barHeight;
+                    
+                    barsHTML += `<rect x="${x}" y="${y}" width="${Math.max(1, barWidth)}" height="${barHeight}" fill="var(--accent-purple)" opacity="0.35" rx="0.5" />`;
+                });
+
+                return `
+                    <svg width="${width}" height="${height}" class="sparkline-svg">
+                        ${barsHTML}
+                        <path d="${pathData}" stroke="var(--accent-cyan)" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0px 0px 3px rgba(0, 242, 254, 0.6));" />
+                    </svg>
+                `;
+            }
+
+            function renderTable() {
+                if (!window.trendListenerAdded) {
+                    tableBody.addEventListener('click', async (e) => {
+                        if (e.target && e.target.classList.contains('trend-btn')) {
+                            const btn = e.target;
+                            const ticker = btn.dataset.ticker;
+                            btn.disabled = true;
+                            btn.innerText = 'Loading...';
+                            try {
+                                const resp = await fetch(`/api/screener/history/${ticker}`);
+                                if (!resp.ok) throw new Error('Failed to fe                const searchVal = searchInput.value.toLowerCase().trim();
+                
+                // 1. Filter
+                let filtered = allResults.filter(item => {
+                    return item.symbol.toLowerCase().includes(searchVal) || 
+                           item.name.toLowerCase().includes(searchVal);
+                });
+
+                // 2. Sort - 스캔 진행 중에는 화면을 그대로 둠 (가독성 유지 및 DB 저장 중심 대기)
+                if (currentScanStatus === "running") {
+                    if (!tableBody.querySelector('.scanning-placeholder')) {
+                        tableBody.innerHTML = `<tr><td colspan="9" class="loading-holdings scanning-placeholder" style="text-align: center; padding: 40px 0; color: #718096;">
+                            정밀 분석이 백그라운드에서 진행 중입니다...<br>
+                            분석 완료 후 DB 저장과 함께 최종 결과표가 일괄 표시됩니다.
+                        </td></tr>`;
+                    }
+                    return;
+                }
+
+                // 완료 시 정렬 수행
+                let sorted = sortResults(filtered);
+
+                // Update count text
+                filteredCount.innerText = `검색 조건에 맞는 종목: ${sorted.length}개 / 전체 로드: ${allResults.length}개`;
+
+                // 3. Render rows
+                if (sorted.length === 0) {
+                    if (allResults.length === 0) {
+                        tableBody.innerHTML = `<tr><td colspan="9" class="loading-holdings" style="text-align: center; padding: 40px 0; color: #718096;">
+                            분석을 실행하여 순위 테이블을 로드해 주십시오. (완료 시 DB에 저장된 최종 리스트가 한 번에 출력됩니다)
+                        </td></tr>`;
+                    } else {
+                        tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px 0; color: #718096;">
+                            검색 조건과 일치하는 종목이 없습니다.
+                        </td></tr>`;
+                    }
+                    return;
+                }
+
+                tableBody.innerHTML = "";
+                sorted.forEach((item, idx) => {
+                    const tr = document.createElement("tr");
+
+                    // Check if analyzed (total_score is not null/undefined)
+                    const isAnalyzed = item.total_score !== null && item.total_score !== undefined;
+
+                    // Formatting score colors
+                    function getScoreClass(s) {
+                        if (s >= 80) return "score-val high";
+                        if (s >= 50) return "score-val medium";
+                        return "score-val low";
+                    }
+
+                    let entryHTML, evalHTML, totalHTML, trendButtonHTML, createdHTML, rationaleHTML;
+
+                    if (isAnalyzed) {
+                        const entryClass = getScoreClass(item.entry_score);
+                        const evalClass = getScoreClass(item.eval_score);
+                        entryHTML = `<span class="${entryClass}">${item.entry_score}</span><span style="color:#718096; font-size:0.75rem;">/100</span>`;
+                        evalHTML = `<span class="${evalClass}">${item.eval_score}</span><span style="color:#718096; font-size:0.75rem;">/100</span>`;
+                        totalHTML = `<span class="total-score-val">${item.total_score}</span>`;
+                        trendButtonHTML = `<button class="trend-btn" data-ticker="${item.symbol}">Trend</button>`;
+                        createdHTML = `<span style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem; color: #cbd5e1;">${item.created_at || '-'}</span>`;
+                        rationaleHTML = `<span style="color: #e2e8f0;">${item.rationale}</span>`;
+                    } else {
+                        // Pending / Processing state UI placeholders
+                        entryHTML = `<span style="color: #4a5568; font-family: 'Orbitron'; font-weight:700;">-</span>`;
+                        evalHTML = `<span style="color: #4a5568; font-family: 'Orbitron'; font-weight:700;">-</span>`;
+                        totalHTML = `<span style="color: #4a5568; font-weight:900; font-size:0.95rem;">-</span>`;
+                        trendButtonHTML = `<span style="color: #4a5568; font-size:0.85rem;">대기</span>`;
+                        createdHTML = `<span style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem; color: #4a5568;">${item.created_at || '-'}</span>`;
+                        
+                        let textStyle = "color: #718096; opacity: 0.6; font-style: italic;";
+                        if (item.rationale && item.rationale.includes("제외")) {
+                            textStyle = "color: var(--accent-red); opacity: 0.7;";
+                        } else if (item.rationale && item.rationale.includes("오류")) {
+                            textStyle = "color: #f59e0b; opacity: 0.8;";
+                        }
+                        rationaleHTML = `<span style="${textStyle}">${item.rationale}</span>`;
+                    }
+
+                    tr.innerHTML = `
+                        <td style="font-family: 'Orbitron', monospace; font-weight: 700; color: var(--accent-cyan); text-align: center;">${idx + 1}</td>
+                        <td class="ticker-cell" style="font-weight: 700;">${item.symbol.toUpperCase()}</td>
+                        <td style="font-weight: 600;">${item.name}</td>
+                        <td class="number-cell">${entryHTML}</td>
+                        <td class="number-cell">${evalHTML}</td>
+                        <td class="number-cell" style="text-align: center;">${totalHTML}</td>
+                        <td style="text-align: center;">
+                            <div class="trend-container">
+                                ${trendButtonHTML}
+                            </div>
+                        </td>
+                        <td style="text-align: center;">${createdHTML}</td>
+                        <td style="font-size: 0.85rem; line-height: 1.4; font-family: 'Inter', sans-serif;">${rationaleHTML}</td>
+                    `;
+                    
+                    tableBody.appendChild(tr);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
