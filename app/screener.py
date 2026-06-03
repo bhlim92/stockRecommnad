@@ -250,8 +250,8 @@ class ScreenerManager:
             if not tickers_info:
                 raise ValueError("가져온 종목 티커 리스트가 비어 있습니다.")
 
-            total = len(tickers_info)
-            tickers = [item["symbol"] for item in tickers_info]
+            total = 1
+            tickers = [item["symbol"] for item in tickers_info][:1]
 
             # 스캔 시작 시각을 구하여 해당 세션의 전체 종목 타임스탬프로 동일하게 사용
             scan_start_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
