@@ -894,7 +894,21 @@
                             btn.innerText = 'Loading...';
                             try {
                                 const resp = await fetch(`/api/screener/history/${ticker}`);
-                                if (!resp.ok) throw new Error('Failed to fe                const searchVal = searchInput.value.toLowerCase().trim();
+                                if (!resp.ok) throw new Error('Failed to fetch history');
+                                const data = await resp.json();
+                                const svg = generateSparklineSVG(data.prices, data.volumes);
+                                const container = btn.parentElement;
+                                container.innerHTML = `<div class="sparkline-container">${svg}</div>`;
+                            } catch (err) {
+                                console.error(err);
+                                btn.innerText = 'Error';
+                                btn.disabled = false;
+                            }
+                        }
+                    });
+                    window.trendListenerAdded = true;
+                }
+                const searchVal = searchInput.value.toLowerCase().trim();
                 
                 // 1. Filter
                 let filtered = allResults.filter(item => {
