@@ -1104,44 +1104,6 @@ Your task is to analyze the investor's current portfolio holdings and compare it
 
 
 # ==============================================================================
-# Stock Screener API Endpoints
-# ==============================================================================
-
-class ScreenerRequest(BaseModel):
-    market: str
-    api_key: str
-    model: str
-
-@app.post("/api/screener/start")
-def start_screener(req: ScreenerRequest) -> JSONResponse:
-    """Triggers the background stock screener scan."""
-    if not req.api_key:
-        raise HTTPException(status_code=400, detail="Gemini API Key is required.")
-        
-    screener = ScreenerManager()
-    success = screener.start_scan(req.market)
-    if not success:
-        raise HTTPException(status_code=400, detail="Screener is already running.")
-        
-    return JSONResponse(content={"message": "Stock screening started successfully."})
-
-@app.get("/api/screener/status")
-def get_screener_status() -> JSONResponse:
-    """Returns the current progress and results of the stock screener."""
-    screener = ScreenerManager()
-    return JSONResponse(content=screener.get_status())
-
-@app.post("/api/screener/stop")
-def stop_screener() -> JSONResponse:
-    """Stops the active stock screener scan."""
-    screener = ScreenerManager()
-    success = screener.stop_scan()
-    if not success:
-        return JSONResponse(content={"message": "No active scan to stop."})
-    return JSONResponse(content={"message": "Scan stop request sent."})
-
-
-# ==============================================================================
 # Authentication API Endpoints
 # ==============================================================================
 
@@ -1153,7 +1115,7 @@ def auth_config() -> JSONResponse:
     return JSONResponse(content={"client_id": get_google_client_id()})
 
 @app.post("/api/auth/login")
-def auth_login(payload: LoginRequest) -> JSONResponse:
+def auth_login(payload: LoginRequest, request: Request) -> JSONResponse:
     try:
         tokeninfo_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={payload.credential}"
         resp = requests.get(tokeninfo_url, timeout=10)
@@ -1176,12 +1138,13 @@ def auth_login(payload: LoginRequest) -> JSONResponse:
         session_token = generate_session_token(email)
         
         response = JSONResponse(content={"status": "success", "email": email})
+        is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
         response.set_cookie(
             key="auth_token",
             value=session_token,
             httponly=True,
-            samesite="lax",
-            secure=False
+            samesite="none" if is_https else "lax",
+            secure=is_https
         )
         return response
     except HTTPException as he:
