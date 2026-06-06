@@ -4,12 +4,16 @@ import time
 import threading
 import traceback
 import requests
+import socket
 from io import StringIO
 import pandas as pd
 import yfinance as yf
 import FinanceDataReader as fdr
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+
+# Set global socket timeout to prevent yfinance or requests from hanging the background thread indefinitely
+socket.setdefaulttimeout(15)
 
 from app.scoring import QuantScorer
 from app.utils.logger import setup_logger
