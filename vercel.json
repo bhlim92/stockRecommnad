@@ -1,6 +1,7 @@
 {
   "version": 2,
   "rewrites": [
+    { "source": "/api/:path*", "destination": "http://bhlim123.cafe24.com:8000/api/:path*" },
     { "source": "/(.*)", "destination": "api/index.py" }
   ]
 }
