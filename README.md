@@ -133,3 +133,26 @@ You can automate execution to run every day at e.g., 6:00 AM using `run_pipeline
 4. Execution logs will accumulate under `logs/scheduler.log` and rotating program traces under `logs/app.log`.
 
 For detailed troubleshooting procedures, logging parameters, and recovery steps when third-party APIs change, see the [deployment.md](file:///c:/Users/samsung/proj/stockRecommnad/deployment.md) guide.
+
+---
+
+## 5. Web Dashboard & UI Features (v3.1)
+
+The system includes a premium, user-centric Web Dashboard (`index.html` and `screener.html`) that translates raw data into visually stunning analytics:
+* **Interactive Charts**: Rendered with **Chart.js** using futuristic neon-blue/purple linear gradients. It visualizes:
+  - Target vs. Current Asset Allocation (Doughnut chart)
+  - Allocation discrepancy/drift comparison (Bar chart)
+* **AI Rebalancing Cards**: Rebalancing markdown advice is parsed into high-fidelity cards sorted by action priority: **BUY -> SELL -> HOLD**. 
+  - **BUY cards** glow with neon green borders.
+  - **SELL cards** glow with neon red borders.
+* **Settings Modal (⚙️)**: Hides database credential forms, Gemini model selectors, and API keys away from the main user dashboard, keeping it clean.
+* **Log Terminal Modal (🖥️)**: Live scrolling logs are hidden inside a toggleable modal so that developers can check execution details while keeping the dashboard clean.
+* **Skeleton Loaders**: Provides premium animated placeholder blocks while yfinance/Google Sheet data loading occurs, eliminating layout jumps.
+* **Visual Cooldown Timer**: A horizontal orange gauge countdown is shown directly on the control panel when yfinance/Gemini API calls are paused for rate limit cooldowns.
+* **Mobile Responsiveness**: Optimizes table scrollers and grid alignments for all screen resolutions.
+
+To launch the web server and view the dashboard:
+```bash
+python main.py --web
+```
+Access the dashboard locally via `http://127.0.0.1:8000/`.

@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 주식 추천 & 리밸런싱 대시보드 (v2.6)</title>
+    <title>퀀트 주식 추천 & 리밸런싱 대시보드 (v3.0)</title>
     <!-- Google Fonts Inter & Orbitron for Tech Theme -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css?v=2.6">
+    <link rel="stylesheet" href="/style.css?v=3.0">
+    <!-- Chart.js CDN for Visual Allocation -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -14,15 +16,29 @@
         <header class="app-header">
             <div class="logo-area">
                 <span class="pulse-ring"></span>
-                <h1>ANTIGRAVITY <span>QUANT</span> (v2.6)</h1>
+                <h1>ANTIGRAVITY <span>QUANT</span> (v3.0)</h1>
             </div>
             <div class="system-status">
-                <a href="/screener.html" target="_blank" class="btn-primary" style="text-decoration: none; padding: 6px 12px; font-size: 11px; margin-right: 15px; display: inline-flex; align-items: center; border-radius: 4px;">종목 스크리너 🔍</a>
+                <a href="/screener.html" target="_blank" class="btn-header" style="text-decoration: none;">종목 스크리너 🔍</a>
+                <button class="btn-header" id="btn-open-settings">설정 ⚙️</button>
+                <button class="btn-header" id="btn-open-terminal">로그 터미널 🖥️</button>
                 <span class="status-label">서버 상태</span>
                 <span class="status-badge status-idle" id="server-status-badge">대기중 (IDLE)</span>
                 <button class="btn-close" id="btn-logout" style="margin-left: 15px; padding: 6px 12px; font-size: 11px;">로그아웃</button>
             </div>
         </header>
+
+        <!-- Warning Toast Banner for API Key -->
+        <div class="warning-banner hidden" id="warning-api-key">
+            <div class="warning-content">
+                <span class="warning-icon">⚠️</span>
+                <div class="warning-text">
+                    <h4>Gemini API Key가 구성되지 않았습니다</h4>
+                    <p>AI 종목 추천 및 포트폴리오 리밸런싱을 정상 기동하려면 API Key 설정이 필수적입니다.</p>
+                </div>
+            </div>
+            <button class="btn-warning-action" id="btn-warning-setup">지금 설정하기 ⚙️</button>
+        </div>
 
         <!-- Main Dashboard Section -->
         <div class="dashboard-grid">
@@ -39,6 +55,17 @@
                         <span class="btn-text">지금 분석 시작하기 (ON-DEMAND)</span>
                         <span class="btn-loader hidden"></span>
                     </button>
+                </div>
+
+                <!-- Cooldown Timer UI -->
+                <div class="cooldown-timer-box hidden" id="cooldown-timer-box">
+                    <div class="cooldown-timer-header">
+                        <span class="cooldown-timer-title">⏱️ Rate Limit API 재호출 대기 지연</span>
+                        <span class="cooldown-timer-seconds" id="cooldown-timer-seconds">13s</span>
+                    </div>
+                    <div class="cooldown-bar-container">
+                        <div class="cooldown-bar-fill" id="cooldown-timer-bar" style="width: 100%;"></div>
+                    </div>
                 </div>
 
                 <div class="progress-section">
@@ -71,14 +98,36 @@
                 </div>
             </section>
 
-            <!-- Right Panel: Live Console Logs -->
-            <section class="glass-card terminal-panel">
+            <!-- Right Panel: Visual Portfolio Analytics -->
+            <section class="glass-card analytics-panel">
                 <div class="card-header">
-                    <h2>애플리케이션 실시간 로그</h2>
-                    <span class="card-subtitle">시스템 파이프라인 정밀 트레이싱</span>
+                    <h2>실시간 포트폴리오 분석</h2>
+                    <span class="card-subtitle">목표 비중 대비 현재 자산 배분 상태 시각화</span>
                 </div>
-                <div class="terminal-body" id="log-terminal">
-                    <div class="terminal-line system-line">[SYSTEM] 터미널 초기화 완료. 이력 조회를 시작합니다.</div>
+                
+                <!-- Macro indicators summary -->
+                <div class="macro-summary-bar">
+                    <div class="macro-card">
+                        <span class="macro-label">USD/KRW 환율</span>
+                        <span class="macro-val" id="macro-exchange-rate" style="color: var(--accent-cyan);">로딩 중...</span>
+                    </div>
+                    <div class="macro-card">
+                        <span class="macro-label">KOSPI 지수</span>
+                        <span class="macro-val" id="macro-kospi" style="color: #ffffff;">로딩 중...</span>
+                    </div>
+                    <div class="macro-card">
+                        <span class="macro-label">S&P 500</span>
+                        <span class="macro-val" id="macro-sp500" style="color: #ffffff;">로딩 중...</span>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-container-wrapper">
+                        <canvas id="allocation-pie-chart"></canvas>
+                    </div>
+                    <div class="chart-container-wrapper">
+                        <canvas id="allocation-compare-chart"></canvas>
+                    </div>
                 </div>
             </section>
         </div>
@@ -112,8 +161,31 @@
                             </tr>
                         </thead>
                         <tbody id="holdings-list">
-                            <tr>
-                                <td colspan="11" class="loading-holdings">구글 드라이브로부터 실시간 데이터를 가져오는 중...</td>
+                            <tr class="skeleton-row">
+                                <td><span class="skeleton-placeholder" style="width: 50px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 120px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 40px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 70px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 70px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 90px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 90px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 80px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 50px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 40px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 40px;"></span></td>
+                            </tr>
+                            <tr class="skeleton-row">
+                                <td><span class="skeleton-placeholder" style="width: 60px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 100px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 40px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 70px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 70px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 90px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 90px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 80px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 50px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 40px;"></span></td>
+                                <td><span class="skeleton-placeholder" style="width: 40px;"></span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -129,55 +201,24 @@
                         <h2>실시간 AI 포트폴리오 리밸런싱 전략</h2>
                         <span class="card-subtitle">실시간 보유 종목과 최신 추천 보고서를 대조하여 수립한 리밸런싱 제안</span>
                     </div>
-                    <button class="btn-primary" id="btn-generate-rebalance">
+                    <button class="btn-primary" id="btn-generate-rebalance" style="width: auto; padding: 10px 20px;">
                         <span class="btn-text">AI 리밸런싱 전략 생성 및 업데이트</span>
                         <span class="btn-loader hidden"></span>
                     </button>
                 </div>
                 
                 <div class="rebalance-content-area" style="margin-top: 20px;">
-                    <div class="rebalance-markdown-content" id="rebalance-strategy-display" style="padding: 15px; border-radius: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); min-height: 100px; color: var(--text-muted); font-size: 14px; line-height: 1.6;">
-                        <div class="loading-holdings" style="text-align: center; padding: 30px 0;">아직 생성된 리밸런싱 전략이 없습니다. 위의 버튼을 클릭하여 생성하십시오.</div>
+                    <div id="rebalance-cards-container" class="rebalance-cards-grid">
+                        <div class="loading-holdings" style="grid-column: 1 / -1; text-align: center; padding: 30px 0;">아직 생성된 리밸런싱 전략이 없습니다. 위의 버튼을 클릭하여 생성하십시오.</div>
                     </div>
+                    <!-- Legacy display fallback, hidden by default -->
+                    <div class="rebalance-markdown-content hidden" id="rebalance-strategy-display"></div>
                 </div>
             </section>
         </div>
 
-        <div class="dashboard-grid secondary-grid">
-            <!-- Left Bottom Panel: Gemini Settings -->
-            <section class="glass-card portfolio-panel">
-                <div class="card-header">
-                    <h2>Gemini AI 분석 모델 설정</h2>
-                    <span class="card-subtitle">분석 엔진에 사용할 모델과 개인 API Key 설정</span>
-                </div>
-                <form id="portfolio-form" class="portfolio-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="select-gemini-model">분석 AI 모델 (Gemini)</label>
-                            <select id="select-gemini-model">
-                                <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
-                                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                                <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                                <option value="gemini-flash-latest">Gemini Flash Latest</option>
-                                <option value="gemini-pro-latest">Gemini Pro Latest</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="input-gemini-api-key">Gemini API Key</label>
-                            <input type="password" id="input-gemini-api-key" placeholder="API Key 입력 (브라우저 로컬 저장)">
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn-secondary" id="btn-save-portfolio">설정 저장 및 반영</button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Right Bottom Panel: Reports Archiver -->
+        <div class="dashboard-grid secondary-grid" style="grid-template-columns: 1fr;">
+            <!-- Reports Archiver (Now full width at bottom) -->
             <section class="glass-card reports-panel">
                 <div class="card-header">
                     <h2>종목 발굴 보고서 보관소</h2>
@@ -205,11 +246,98 @@
             </div>
         </section>
 
+        <!-- Modal: Settings (Gemini & API Configuration) -->
+        <div class="modal-overlay" id="modal-settings">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3>⚙️ Gemini AI 분석 모델 설정</h3>
+                    <button class="btn-close" id="btn-close-settings">X</button>
+                </div>
+                <div class="modal-body">
+                    <form id="portfolio-form" class="portfolio-form" style="margin: 0;">
+                        <div class="form-row" style="grid-template-columns: 1fr; gap: 20px;">
+                            <div class="form-group">
+                                <label for="select-gemini-model">분석 AI 모델 (Gemini)</label>
+                                <select id="select-gemini-model" style="background: rgba(0, 0, 0, 0.3);">
+                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
+                                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                                    <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                                    <option value="gemini-pro-latest">Gemini Pro Latest</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-gemini-api-key">Gemini API Key</label>
+                                <input type="password" id="input-gemini-api-key" placeholder="API Key 입력 (브라우저 로컬 저장)" style="background: rgba(0, 0, 0, 0.3);">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="btn-cancel-settings" style="width: auto; padding: 10px 20px;">취소</button>
+                    <button class="btn-primary" id="btn-save-settings" style="width: auto; padding: 10px 20px;">설정 저장 및 반영</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Log Terminal -->
+        <div class="modal-overlay" id="modal-terminal">
+            <div class="modal-container large">
+                <div class="modal-header">
+                    <h3>🖥️ 시스템 실시간 분석 로그</h3>
+                    <button class="btn-close" id="btn-close-terminal">X</button>
+                </div>
+                <div class="modal-body" style="background: #06090e; padding: 0;">
+                    <div class="terminal-body" id="log-terminal" style="border: none; max-height: 60vh; min-height: 400px; border-radius: 0;">
+                        <div class="terminal-line system-line">[SYSTEM] 터미널 초기화 완료. 이력 조회를 시작합니다.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="btn-clear-terminal" style="width: auto; padding: 10px 20px;">로그 비우기</button>
+                    <button class="btn-primary" id="btn-hide-terminal" style="width: auto; padding: 10px 20px;">닫기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inline User Guide Panel -->
+        <section class="guide-panel">
+            <div class="guide-header">
+                <span class="pulse-ring" style="background: var(--accent-cyan);"></span>
+                <h3>💡 퀀트 투자 대시보드 초보자 안내 가이드</h3>
+            </div>
+            <div class="guide-grid">
+                <div class="guide-item">
+                    <span class="guide-num">1</span>
+                    <div class="guide-desc">
+                        <h4>Gemini API Key 구성</h4>
+                        <p>우측 상단 ⚙️ 설정을 통해 본인의 Gemini API Key를 등록하면 개인화된 AI 리밸런싱 코칭을 받으실 수 있습니다. 브라우저 로컬 저장소에 안전하게 관리됩니다.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <span class="guide-num">2</span>
+                    <div class="guide-desc">
+                        <h4>포트폴리오 holdings 수동 매칭</h4>
+                        <p>구글 스프레드시트 매매일지에 기록된 종목들이 실시간으로 파싱되며, 자산 배분 비중이 목표 비중과 어떻게 일치하고 이탈하는지 차트로 즉시 보여줍니다.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <span class="guide-num">3</span>
+                    <div class="guide-desc">
+                        <h4>리밸런싱 의사결정 실행</h4>
+                        <p>매일 아침 'AI 리밸런싱 전략 생성' 버튼을 눌러, AI가 제안하는 매수/매도 지시에 따라 본인의 자산을 손쉽게 균형 맞출 수 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer class="app-footer">
             <p>© 2026 Antigravity Quant Team. All Rights Reserved. Built with FastAPI & Vanilla JS.</p>
         </footer>
     </div>
-    <script src="/app.js?v=2.6"></script>
+    <script src="/app.js?v=3.0"></script>
 </body>
 </html>

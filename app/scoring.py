@@ -59,38 +59,83 @@ class QuantScorer:
         tickers: List[str],
         preloaded_prices: Optional[Dict[str, pd.DataFrame]] = None,
     ) -> Dict[str, Dict[str, Any]]:
-        """Calculate scores for each ticker.
-
-        Parameters
-        ----------
-        tickers:
-            List of ticker symbols (e.g. ``["AAPL", "MSFT"]``).
-        preloaded_prices:
-            Optional mapping of ticker → ``DataFrame`` containing historic price
-            data. When provided the latest close price is extracted for the
-            ``current_price`` field; otherwise a yfinance ``history`` call is
-            performed.
-        """
+        """Calculate scores for each ticker using concurrent threads to speed up yfinance info queries."""
         results: Dict[str, Dict[str, Any]] = {}
-        for ticker in tickers:
+        if not tickers:
+            return results
+
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def process_ticker(ticker: str) -> Optional[Dict[str, Any]]:
             try:
                 info = self._fetch_fundamentals(ticker)
                 current_price = self._extract_current_price(ticker, preloaded_prices)
                 fundamentals = self._parse_fundamentals(info, current_price)
                 eval_score = self._calc_fundamental_score(fundamentals, current_price)
+                
+                # Check for moving averages and volume if preloaded prices are available
+                ma = {}
+                vol = {}
+                entry_details = []
+                eval_details = []
+                
+                if preloaded_prices and ticker in preloaded_prices:
+                    df = preloaded_prices[ticker]
+                    if len(df) >= 200:
+                        ma["sma_200"] = float(df["Close"].rolling(200).mean().iloc[-1])
+                    if len(df) >= 20:
+                        ma["sma_20"] = float(df["Close"].rolling(20).mean().iloc[-1])
+                        vol["avg_20"] = float(df["Volume"].rolling(20).mean().iloc[-1])
+                    if len(df) >= 5:
+                        ma["sma_5"] = float(df["Close"].rolling(5).mean().iloc[-1])
+                    if len(df) >= 1:
+                        vol["current"] = float(df["Volume"].iloc[-1])
 
-                results[ticker] = {
+                    # Basic details populator for rebalance view stability
+                    if ma.get("sma_5", 0) > ma.get("sma_20", 0):
+                        entry_details.append("단기 우상향 (5일 > 20일)")
+                    else:
+                        entry_details.append("단기 조정세 (5일 <= 20일)")
+                else:
+                    entry_details.append("기술 지표 데이터 대기")
+
+                # Basic fundamental details populator
+                per = fundamentals.get("per")
+                if per is not None:
+                    eval_details.append(f"PER: {per:.1f}")
+                peg = fundamentals.get("peg")
+                if peg is not None:
+                    eval_details.append(f"PEG: {peg:.1f}")
+                if fundamentals.get("canslim_passed"):
+                    eval_details.append("CANSLIM 통과")
+
+                return {
                     "name": info.get("shortName") or ticker,
                     "current_price": current_price,
                     "fundamentals": fundamentals,
                     "entry_score": 0,  # technical entry score is computed elsewhere
                     "eval_score": eval_score,
-                    "moving_averages": {},
-                    "volume": {},
+                    "moving_averages": ma,
+                    "volume": vol,
+                    "entry_details": entry_details,
+                    "eval_details": eval_details,
                 }
             except Exception as exc:  # pragma: no cover – defensive logging
                 self.logger.exception("Failed to calculate scores for %s", ticker)
-                continue
+                return None
+
+        max_workers = min(15, len(tickers))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_ticker = {executor.submit(process_ticker, t): t for t in tickers}
+            for future in as_completed(future_to_ticker):
+                ticker = future_to_ticker[future]
+                try:
+                    data = future.result()
+                    if data is not None:
+                        results[ticker] = data
+                except Exception as exc:
+                    self.logger.exception("Failed to retrieve future result for %s", ticker)
+
         return results
 
     # ---------------------------------------------------------------------

@@ -32,14 +32,29 @@ SessionLocal = None
 
 def get_db_url() -> str:
     db_type = os.getenv("DB_TYPE", "").lower()
+    # Fallback to sqlite if DB_TYPE is not set or empty
     if not db_type:
-        return ""
+        if os.getenv("TESTING", "").lower() == "true":
+            return ""
+        db_type = "sqlite"
+    
+    db_name = os.getenv("DB_NAME", "")
+    
+    if db_type == "sqlite":
+        db_file = db_name if db_name else "stock_db.sqlite"
+        # If relative filename (no directories), put it in the project's data directory
+        if not os.path.isabs(db_file) and "/" not in db_file and "\\" not in db_file:
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            data_dir = os.path.join(root_dir, "data")
+            os.makedirs(data_dir, exist_ok=True)
+            db_file = os.path.join(data_dir, db_file)
+        abs_path = os.path.abspath(db_file).replace("\\", "/")
+        return f"sqlite:///{abs_path}"
     
     host = os.getenv("DB_HOST", "localhost")
     port = os.getenv("DB_PORT", "3306" if db_type == "mariadb" else "5432")
     user = os.getenv("DB_USER", "")
     password = os.getenv("DB_PASSWORD", "")
-    db_name = os.getenv("DB_NAME", "")
     
     if not user or not db_name:
         logger.warning("Database configuration missing username or database name. DB integration disabled.")

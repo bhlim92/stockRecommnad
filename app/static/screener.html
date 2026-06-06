@@ -306,118 +306,128 @@
         <!-- Header -->
         <div class="screener-header">
             <div class="screener-title">
-                <h1>🔍 퀀트 AI 종목 스크리너 (v2.6)</h1>
+                <h1>🔍 퀀트 AI 종목 스크리너 (v3.0)</h1>
             </div>
-            <a href="/" class="btn-back-dashboard">
-                <span>◀ 대시보드로 돌아가기</span>
-            </a>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button class="btn-header" id="btn-open-screener-settings">스크리너 설정 ⚙️</button>
+                <a href="/" class="btn-back-dashboard" style="font-size: 0.85rem; padding: 8px 14px;">
+                    <span>◀ 대시보드</span>
+                </a>
+            </div>
         </div>
 
-        <!-- Settings & Configuration Card -->
-        <div class="glass-card">
-            <div class="card-header" style="margin-bottom: 20px;">
-                <h2>⚙️ 스크리너 분석 설정 (Screener Settings)</h2>
-                <span class="card-subtitle">AI 스캔에 적용할 분석 엔진 모델과 API Key 및 타겟 시장 설정</span>
+        <!-- Main Controller Card (Always Visible) -->
+        <div class="glass-card" style="margin-bottom: 20px; padding: 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <!-- Market Choice -->
+                <div class="input-group" style="margin: 0; flex-grow: 1; max-width: 500px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">대상 주식 시장</label>
+                    <div class="market-tabs" style="background: rgba(0, 0, 0, 0.2);">
+                        <button type="button" class="market-tab active" data-market="sp500">S&P 500 (US)</button>
+                        <button type="button" class="market-tab" data-market="kospi200">KOSPI 200 (KR)</button>
+                        <button type="button" class="market-tab" data-market="kosdaq">KOSDAQ (KR)</button>
+                    </div>
+                </div>
+                <!-- Start/Stop Actions -->
+                <div style="display: flex; gap: 10px; align-self: flex-end;">
+                    <button type="button" id="btn-start-scan" class="btn-primary" style="padding: 10px 24px; width: auto; font-size: 13px;">
+                        <span class="btn-loader hidden" style="margin-right: 8px;"></span>
+                        <span class="btn-text">퀀트 스캔 시작 🚀</span>
+                    </button>
+                    <button type="button" id="btn-stop-scan" class="btn-danger hidden" style="padding: 10px 24px; width: auto; font-size: 13px; background: var(--accent-red); border: none; color: white; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 6px;">
+                        <span>스캔 중지 ⏹️</span>
+                    </button>
+                </div>
             </div>
-            <form id="screener-config-form">
-                <div class="config-bar">
-                    <!-- Gemini Model Selection -->
-                    <div class="input-group">
-                        <label for="screener-gemini-model">분석 AI 모델 (Gemini)</label>
-                        <select id="screener-gemini-model" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">
-                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
-                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                            <option value="gemini-flash-latest">Gemini Flash Latest</option>
-                            <option value="gemini-pro-latest">Gemini Pro Latest</option>
-                        </select>
-                    </div>
-                    <!-- API Key (shared from LocalStorage) -->
-                    <div class="input-group">
-                        <label for="screener-api-key">Gemini API Key</label>
-                        <input type="password" id="screener-api-key" placeholder="API Key가 대시보드와 자동 동기화됩니다" required>
-                    </div>
-                    <!-- Market Choice -->
-                    <div class="input-group">
-                        <label>대상 주식 시장</label>
-                        <div class="market-tabs">
-                            <button type="button" class="market-tab active" data-market="sp500">S&P 500 (US)</button>
-                            <button type="button" class="market-tab" data-market="kospi200">KOSPI 200 (KR)</button>
-                            <button type="button" class="market-tab" data-market="kosdaq">KOSDAQ (KR)</button>
-                        </div>
-                    </div>
-                    <!-- Actions -->
-                    <div class="input-group flex-row" style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button type="button" id="btn-start-scan" class="btn-primary" style="flex: 1;">
-                            <span class="btn-loader hidden"></span>
-                            <span class="btn-text">스캔 시작</span>
-                        </button>
-                        <button type="button" id="btn-stop-scan" class="btn-danger" style="flex: 1;">
-                            <span>스캔 중지</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Database Collapsible Settings -->
-                <div class="db-settings-toggle" style="margin-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 15px; display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 0.9rem; color: #a0aec0; font-weight: 600;">📁 RDBMS 백업 저장 설정 (MariaDB / PostgreSQL)</span>
-                    <button type="button" id="btn-toggle-db-settings" class="btn-secondary" style="padding: 4px 10px; font-size: 0.8rem; height: auto;">설정 열기 🔓</button>
-                </div>
-                
-                <div id="db-settings-panel" class="hidden" style="margin-top: 15px; background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: end;">
-                        <div class="input-group">
-                            <label for="db-type">DB 종류 (Database Type)</label>
-                            <select id="db-type" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px; font-family: 'Orbitron', sans-serif;">
-                                <option value="">사용 안 함 (Disabled)</option>
-                                <option value="mariadb">MariaDB / MySQL</option>
-                                <option value="postgresql">PostgreSQL</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="db-host">DB 호스트 (Host)</label>
-                            <input type="text" id="db-host" placeholder="e.g. 127.0.0.1 or domain">
-                        </div>
-                        <div class="input-group">
-                            <label for="db-port">DB 포트 (Port)</label>
-                            <input type="number" id="db-port" placeholder="e.g. 3306 or 5432">
-                        </div>
-                        <div class="input-group">
-                            <label for="db-user">DB 사용자명 (Username)</label>
-                            <input type="text" id="db-user" placeholder="e.g. root">
-                        </div>
-                        <div class="input-group">
-                            <label for="db-password">DB 비밀번호 (Password)</label>
-                            <input type="password" id="db-password" placeholder="변경 시에만 입력">
-                        </div>
-                        <div class="input-group">
-                            <label for="db-name">DB 이름 (DB Name)</label>
-                            <input type="text" id="db-name" placeholder="e.g. stock_db">
-                        </div>
-                    </div>
-                    <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
-                        <button type="button" id="btn-save-db" class="btn-primary" style="padding: 6px 15px; font-size: 0.85rem; height: auto; min-width: 150px;">DB 연결 및 저장</button>
-                    </div>
-                </div>
-            </form>
 
             <!-- Real-time Progress -->
-            <div class="progress-section" id="screener-progress-section">
+            <div class="progress-section" id="screener-progress-section" style="margin-top: 20px; display: none;">
                 <div class="progress-header-info">
-                    <span id="scan-progress-text">분석 수집 준비 중...</span>
-                    <span id="scan-ratio-text">0 / 0 종목</span>
+                    <span id="scan-progress-text" style="font-weight: 600; color: var(--accent-cyan);">분석 수집 준비 중...</span>
+                    <span id="scan-ratio-text" style="font-family: 'Orbitron', monospace; font-weight: bold;">0 / 0 종목</span>
                 </div>
-                <div class="progress-bar-container">
+                <div class="progress-bar-container" style="background: rgba(0, 0, 0, 0.3);">
                     <div class="progress-bar-indicator" id="scan-progress-bar"></div>
                 </div>
             </div>
 
             <!-- Mini Log Monitor -->
-            <div class="screener-terminal" id="screener-log-terminal">
-                [SYSTEM] 대기 중... '스캔 시작' 버튼을 누르면 전 종목 스크리닝이 기동됩니다.
+            <div class="screener-terminal" id="screener-log-terminal" style="margin-top: 15px; margin-bottom: 0; background: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.05);">
+                [SYSTEM] 대기 중... '퀀트 스캔 시작' 버튼을 누르면 전 종목 스크리닝이 기동됩니다.
+            </div>
+        </div>
+
+        <!-- Modal: Screener Settings (Gemini & API & DB settings) -->
+        <div class="modal-overlay" id="modal-screener-settings">
+            <div class="modal-container" style="max-width: 750px;">
+                <div class="modal-header">
+                    <h3>⚙️ 스크리너 분석 및 DB 설정</h3>
+                    <button class="btn-close" id="btn-close-screener-settings">X</button>
+                </div>
+                <div class="modal-body">
+                    <form id="screener-config-form" style="margin: 0;">
+                        <!-- Gemini Model & API Key -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <div class="input-group">
+                                <label for="screener-gemini-model">분석 AI 모델 (Gemini)</label>
+                                <select id="screener-gemini-model" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">
+                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
+                                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                                    <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                                    <option value="gemini-pro-latest">Gemini Pro Latest</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="screener-api-key">Gemini API Key</label>
+                                <input type="password" id="screener-api-key" placeholder="API Key가 대시보드와 자동 동기화됩니다" required style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px;">
+                            </div>
+                        </div>
+
+                        <!-- Database Settings -->
+                        <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 20px; margin-top: 15px;">
+                            <span style="font-size: 0.9rem; color: #ffffff; font-weight: 600; display: block; margin-bottom: 15px;">📁 RDBMS 백업 저장 설정 (MariaDB / PostgreSQL / SQLite)</span>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: end;">
+                                <div class="input-group">
+                                    <label for="db-type">DB 종류 (Database Type)</label>
+                                    <select id="db-type" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px; font-family: 'Orbitron', sans-serif;">
+                                        <option value="">사용 안 함 (Disabled)</option>
+                                        <option value="sqlite">SQLite (Local File)</option>
+                                        <option value="mariadb">MariaDB / MySQL</option>
+                                        <option value="postgresql">PostgreSQL</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="db-host">DB 호스트 (Host)</label>
+                                    <input type="text" id="db-host" placeholder="e.g. 127.0.0.1 or domain" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px;">
+                                </div>
+                                <div class="input-group">
+                                    <label for="db-port">DB 포트 (Port)</label>
+                                    <input type="number" id="db-port" placeholder="e.g. 3306 or 5432" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px;">
+                                </div>
+                                <div class="input-group">
+                                    <label for="db-user">DB 사용자명 (Username)</label>
+                                    <input type="text" id="db-user" placeholder="e.g. root" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px;">
+                                </div>
+                                <div class="input-group">
+                                    <label for="db-password">DB 비밀번호 (Password)</label>
+                                    <input type="password" id="db-password" placeholder="변경 시에만 입력" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px;">
+                                </div>
+                                <div class="input-group">
+                                    <label for="db-name">DB 이름 (DB Name)</label>
+                                    <input type="text" id="db-name" placeholder="e.g. stock_db" style="width: 100%; padding: 10px; background: rgba(13, 17, 38, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 6px;">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btn-cancel-screener-settings" class="btn-secondary" style="width: auto; padding: 10px 20px;">취소</button>
+                    <button type="button" id="btn-save-db-modal" class="btn-primary" style="width: auto; padding: 10px 20px;">설정 및 DB 연결 저장</button>
+                </div>
             </div>
         </div>
 
@@ -565,21 +575,19 @@
             fetchStatus();
             fetchDBSettings();
 
-            // DB Settings DOM elements and event handlers
-            const btnSaveDB = document.getElementById("btn-save-db");
-            const btnToggleDBSettings = document.getElementById("btn-toggle-db-settings");
-            const dbSettingsPanel = document.getElementById("db-settings-panel");
+            // Screener Settings Modal Elements
+            const modalSettings = document.getElementById("modal-screener-settings");
+            const btnOpenSettings = document.getElementById("btn-open-screener-settings");
+            const btnCloseSettings = document.getElementById("btn-close-screener-settings");
+            const btnCancelSettings = document.getElementById("btn-cancel-screener-settings");
 
-            btnToggleDBSettings.addEventListener("click", () => {
-                const isHidden = dbSettingsPanel.classList.contains("hidden");
-                if (isHidden) {
-                    dbSettingsPanel.classList.remove("hidden");
-                    btnToggleDBSettings.innerText = "설정 닫기 🔒";
-                } else {
-                    dbSettingsPanel.classList.add("hidden");
-                    btnToggleDBSettings.innerText = "설정 열기 🔓";
-                }
-            });
+            btnOpenSettings.addEventListener("click", () => modalSettings.classList.add("active"));
+            const hideSettingsModal = () => modalSettings.classList.remove("active");
+            btnCloseSettings.addEventListener("click", hideSettingsModal);
+            btnCancelSettings.addEventListener("click", hideSettingsModal);
+
+            // DB Settings DOM elements and event handlers
+            const btnSaveDB = document.getElementById("btn-save-db-modal");
 
             async function fetchDBSettings() {
                 try {
@@ -612,6 +620,14 @@
                 const dbPassword = document.getElementById("db-password").value;
                 const dbName = document.getElementById("db-name").value;
 
+                // Sync API Key & Model as well when saving modal
+                const apiKey = inputApiKey.value.trim();
+                const model = selectModel.value;
+                if (apiKey) {
+                    localStorage.setItem("gemini_api_key", apiKey);
+                    localStorage.setItem("gemini_model", model);
+                }
+
                 btnSaveDB.disabled = true;
                 btnSaveDB.innerText = "연결 테스트 및 저장 중...";
 
@@ -635,6 +651,7 @@
                         addLogLine(`[SUCCESS] ${resData.message}`);
                         // Reload DB settings
                         fetchDBSettings();
+                        hideSettingsModal(); // Hide modal upon success
                     } else {
                         alert(`저장/연결 오류: ${resData.message}`);
                         addLogLine(`[ERROR] DB 설정 오류: ${resData.message}`);
@@ -644,9 +661,10 @@
                     addLogLine(`[ERROR] DB 요청 실패: ${error.message}`);
                 } finally {
                     btnSaveDB.disabled = false;
-                    btnSaveDB.innerText = "DB 연결 및 저장";
+                    btnSaveDB.innerText = "설정 및 DB 연결 저장";
                 }
             });
+
 
             async function startScan() {
                 const apiKey = inputApiKey.value.trim();
@@ -704,7 +722,7 @@
 
             function startPolling() {
                 if (pollInterval) clearInterval(pollInterval);
-                pollInterval = setInterval(fetchStatus, 1500);
+                pollInterval = setInterval(fetchStatus, 2000);
             }
 
             function stopPolling() {
@@ -916,22 +934,33 @@
                            item.name.toLowerCase().includes(searchVal);
                 });
 
-                // 2. Sort - 스캔 진행 중에는 화면을 그대로 둠 (가독성 유지 및 DB 저장 중심 대기)
+                // 2. Sort & Filter based on execution status
+                let sorted = [];
                 if (currentScanStatus === "running") {
-                    if (!tableBody.querySelector('.scanning-placeholder')) {
-                        tableBody.innerHTML = `<tr><td colspan="9" class="loading-holdings scanning-placeholder" style="text-align: center; padding: 40px 0; color: #718096;">
-                            정밀 분석이 백그라운드에서 진행 중입니다...<br>
-                            분석 완료 후 DB 저장과 함께 최종 결과표가 일괄 표시됩니다.
-                        </td></tr>`;
+                    // Filter out items that are analyzed
+                    let analyzed = filtered.filter(item => item.total_score !== null && item.total_score !== undefined);
+                    
+                    // Sort by total score descending for the leaderboard
+                    sorted = [...analyzed].sort((a, b) => b.total_score - a.total_score).slice(0, 15);
+                    
+                    if (sorted.length === 0) {
+                        filteredCount.innerText = `스캔 진행 중... (데이터 수집 및 분석 대기 중)`;
+                        if (!tableBody.querySelector('.scanning-placeholder')) {
+                            tableBody.innerHTML = `<tr><td colspan="9" class="loading-holdings scanning-placeholder" style="text-align: center; padding: 40px 0; color: #718096;">
+                                백그라운드에서 분석을 진행 중입니다...<br>
+                                시세 데이터 수집 완료 후 실시간 상위 15개 리더보드가 여기에 표시됩니다.
+                            </td></tr>`;
+                        }
+                        return;
                     }
-                    return;
+                    
+                    // Update count text with live leaderboard badge
+                    filteredCount.innerHTML = `<span class="sort-badge primary" style="font-size:0.85rem; padding: 4px 10px; border-radius: 4px; background: rgba(0, 242, 254, 0.12); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); display: inline-block; vertical-align: middle; box-shadow: 0 0 8px rgba(0, 242, 254, 0.2);">📊 실시간 리더보드 (Top 15 / ${analyzed.length}개 완료)</span>`;
+                } else {
+                    // 완료 시 전체 정렬 수행
+                    sorted = sortResults(filtered);
+                    filteredCount.innerText = `검색 조건에 맞는 종목: ${sorted.length}개 / 전체 로드: ${allResults.length}개`;
                 }
-
-                // 완료 시 정렬 수행
-                let sorted = sortResults(filtered);
-
-                // Update count text
-                filteredCount.innerText = `검색 조건에 맞는 종목: ${sorted.length}개 / 전체 로드: ${allResults.length}개`;
 
                 // 3. Render rows
                 if (sorted.length === 0) {
