@@ -1453,5 +1453,82 @@ body {
     to { transform: translateY(0); opacity: 1; }
 }
 
+/* ==============================================================================
+   Mobile Responsiveness (Added for v3.2+)
+   ============================================================================== */
+@media (max-width: 768px) {
+    /* Stack flex elements and grids */
+    .app-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .screener-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .form-row, .weight-inputs-grid, .portfolio-summary-bar {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .config-bar {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Enhance Table Scrolling */
+    .table-container, .holdings-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        display: block;
+    }
+    
+    /* Optimize Touch Areas for Mobile */
+    button, .btn-primary, .btn-secondary, .market-tab, .btn-back-dashboard, .trend-btn, .btn-report-view, .btn-header {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+    
+    /* Adjust Font Sizes */
+    body {
+        font-size: 14px;
+    }
+    
+    .logo-area h1 {
+        font-size: 18px;
+    }
+    
+    .screener-title h1 {
+        font-size: 1.5rem;
+    }
+    
+    .market-tabs {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .market-tab {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .hide-on-mobile {
+        display: none !important;
+    }
+    
+    .mobile-ellipsis {
+        max-width: 100px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
 
 

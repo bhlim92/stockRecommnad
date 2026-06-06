@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime
@@ -147,3 +147,85 @@ def save_screener_results(market: str, results: List[Dict[str, Any]]) -> bool:
     except Exception as e:
         logger.error(f"Error during saving screener results to database: {str(e)}")
         return False
+
+def get_top_screener_results(limit: int = 10) -> List[Dict[str, Any]]:
+    """Retrieve the latest top screener results sorted by total_score."""
+    global SessionLocal
+    if SessionLocal is None:
+        if not init_db():
+            return []
+    try:
+        db = SessionLocal()
+        # Find the latest scan time
+        latest_record = db.query(ScreenerResult).order_by(ScreenerResult.created_at.desc()).first()
+        if not latest_record:
+            db.close()
+            return []
+            
+        latest_time = latest_record.created_at
+        
+        # Query results from that scan time
+        results = db.query(ScreenerResult).filter(
+            ScreenerResult.created_at == latest_time
+        ).order_by(ScreenerResult.total_score.desc()).limit(limit).all()
+        
+        dict_results = []
+        for r in results:
+            dict_results.append({
+                "market": r.market,
+                "symbol": r.symbol,
+                "name": r.name,
+                "current_price": r.current_price,
+                "entry_score": r.entry_score,
+                "eval_score": r.eval_score,
+                "total_score": r.total_score,
+                "rationale": r.rationale,
+                "created_at": r.created_at.strftime("%Y-%m-%d %H:%M:%S") if r.created_at else ""
+            })
+        db.close()
+        return dict_results
+    except Exception as e:
+        logger.error(f"Error retrieving top screener results: {str(e)}")
+        return []
+
+def get_latest_score_by_symbol(symbol: str) -> Optional[Dict[str, Any]]:
+    """Retrieve the most recent score for a specific ticker symbol."""
+    global SessionLocal
+    if SessionLocal is None:
+        if not init_db():
+            return None
+    try:
+        db = SessionLocal()
+        symbol_upper = symbol.upper()
+        # Find latest record for this exact symbol (or matching the prefix if exact fails, though usually exact)
+        record = db.query(ScreenerResult).filter(
+            ScreenerResult.symbol == symbol_upper
+        ).order_by(ScreenerResult.created_at.desc()).first()
+        
+        if not record:
+            # Fallback for Yahoo format mapping if they omitted suffix
+            record = db.query(ScreenerResult).filter(
+                ScreenerResult.symbol.startswith(symbol_upper)
+            ).order_by(ScreenerResult.created_at.desc()).first()
+            
+        if not record:
+            db.close()
+            return None
+            
+        res = {
+            "market": record.market,
+            "symbol": record.symbol,
+            "name": record.name,
+            "current_price": record.current_price,
+            "entry_score": record.entry_score,
+            "eval_score": record.eval_score,
+            "total_score": record.total_score,
+            "rationale": record.rationale,
+            "created_at": record.created_at.strftime("%Y-%m-%d %H:%M:%S") if record.created_at else ""
+        }
+        db.close()
+        return res
+    except Exception as e:
+        logger.error(f"Error retrieving score for {symbol}: {str(e)}")
+        return None
+

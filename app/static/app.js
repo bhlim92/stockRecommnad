@@ -821,15 +821,15 @@ document.addEventListener("DOMContentLoaded", () => {
             
             tr.innerHTML = `
                 <td class="ticker-cell">${item.ticker.toUpperCase()}</td>
-                <td>${item.name}</td>
-                <td class="number-cell">${formattedQty}</td>
+                <td class="mobile-ellipsis">${item.name}</td>
+                <td class="number-cell hide-on-mobile">${formattedQty}</td>
                 <td class="number-cell">${formattedPrice}</td>
-                <td class="number-cell">${formattedPurchase}</td>
-                <td class="number-cell">${formattedTotalPurchase}</td>
-                <td class="number-cell">${formattedTotalEval}</td>
+                <td class="number-cell hide-on-mobile">${formattedPurchase}</td>
+                <td class="number-cell hide-on-mobile">${formattedTotalPurchase}</td>
+                <td class="number-cell hide-on-mobile">${formattedTotalEval}</td>
                 <td class="number-cell ${returnClass}">${formattedProfit}</td>
                 <td class="number-cell ${returnClass}">${item.roi}</td>
-                <td class="number-cell" style="font-family: 'Orbitron', monospace;">${item.weight}</td>
+                <td class="number-cell hide-on-mobile" style="font-family: 'Orbitron', monospace;">${item.weight}</td>
                 <td class="number-cell" style="font-family: 'Orbitron', monospace; color: var(--accent-cyan);">${formattedEvalWeight}</td>
             `;
             

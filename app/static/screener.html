@@ -446,14 +446,14 @@
             <table class="holdings-table">
                 <thead>
                     <tr>
-                        <th style="width: 50px;">순위</th>
+                        <th class="hide-on-mobile" style="width: 50px;">순위</th>
                         <th style="width: 90px;">티커</th>
-                        <th>종목명</th>
-                        <th class="sortable" data-col="entry_score" style="width: 130px;">진입 점수 <span id="sort-entry-indicator"></span></th>
-                        <th class="sortable" data-col="eval_score" style="width: 130px;">평가 점수 <span id="sort-eval-indicator"></span></th>
+                        <th class="mobile-ellipsis">종목명</th>
+                        <th class="sortable hide-on-mobile" data-col="entry_score" style="width: 130px;">진입 점수 <span id="sort-entry-indicator"></span></th>
+                        <th class="sortable hide-on-mobile" data-col="eval_score" style="width: 130px;">평가 점수 <span id="sort-eval-indicator"></span></th>
                         <th class="sortable" data-col="total_score" style="width: 120px;">종합 점수 <span id="sort-total-indicator"></span></th>
-                        <th style="width: 150px; text-align: center;">최근 20일 추이</th>
-                        <th style="width: 180px; text-align: center;">분석 일시</th>
+                        <th class="hide-on-mobile" style="width: 150px; text-align: center;">최근 20일 추이</th>
+                        <th class="hide-on-mobile" style="width: 180px; text-align: center;">분석 일시</th>
                         <th>핵심 분석 근거</th>
                     </tr>
                 </thead>
@@ -1019,18 +1019,18 @@
                     }
 
                     tr.innerHTML = `
-                        <td style="font-family: 'Orbitron', monospace; font-weight: 700; color: var(--accent-cyan); text-align: center;">${idx + 1}</td>
+                        <td class="hide-on-mobile" style="font-family: 'Orbitron', monospace; font-weight: 700; color: var(--accent-cyan); text-align: center;">${idx + 1}</td>
                         <td class="ticker-cell" style="font-weight: 700;">${item.symbol.toUpperCase()}</td>
-                        <td style="font-weight: 600;">${item.name}</td>
-                        <td class="number-cell">${entryHTML}</td>
-                        <td class="number-cell">${evalHTML}</td>
+                        <td class="mobile-ellipsis" style="font-weight: 600;">${item.name}</td>
+                        <td class="number-cell hide-on-mobile">${entryHTML}</td>
+                        <td class="number-cell hide-on-mobile">${evalHTML}</td>
                         <td class="number-cell" style="text-align: center;">${totalHTML}</td>
-                        <td style="text-align: center;">
+                        <td class="hide-on-mobile" style="text-align: center;">
                             <div class="trend-container">
                                 ${trendButtonHTML}
                             </div>
                         </td>
-                        <td style="text-align: center;">${createdHTML}</td>
+                        <td class="hide-on-mobile" style="text-align: center;">${createdHTML}</td>
                         <td style="font-size: 0.85rem; line-height: 1.4; font-family: 'Inter', sans-serif;">${rationaleHTML}</td>
                     `;
                     
