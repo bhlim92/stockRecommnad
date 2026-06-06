@@ -78,24 +78,142 @@ class QuantScorer:
                 vol = {}
                 entry_details = []
                 eval_details = []
+                entry_score = 0
                 
                 if preloaded_prices and ticker in preloaded_prices:
                     df = preloaded_prices[ticker]
-                    if len(df) >= 200:
-                        ma["sma_200"] = float(df["Close"].rolling(200).mean().iloc[-1])
-                    if len(df) >= 20:
-                        ma["sma_20"] = float(df["Close"].rolling(20).mean().iloc[-1])
-                        vol["avg_20"] = float(df["Volume"].rolling(20).mean().iloc[-1])
-                    if len(df) >= 5:
-                        ma["sma_5"] = float(df["Close"].rolling(5).mean().iloc[-1])
-                    if len(df) >= 1:
-                        vol["current"] = float(df["Volume"].iloc[-1])
+                    
+                    # Handle MultiIndex if present (safe check for Ticker vs Attribute levels)
+                    if isinstance(df.columns, pd.MultiIndex):
+                        df = df.copy()
+                        known_attrs = {"Close", "Open", "Volume", "High", "Low", "Adj Close"}
+                        new_columns = []
+                        for col_tuple in df.columns:
+                            matched = False
+                            for part in col_tuple:
+                                if part in known_attrs:
+                                    new_columns.append(part)
+                                    matched = True
+                                    break
+                            if not matched:
+                                new_columns.append(col_tuple[-1] if col_tuple else "")
+                        df.columns = new_columns
+                        
+                    if all(col in df.columns for col in ["Close", "Open", "Volume"]):
+                        closes = df["Close"]
+                        opens = df["Open"]
+                        volumes = df["Volume"]
+                        
+                        if len(df) >= 200:
+                            ma["sma_200"] = float(closes.rolling(200).mean().iloc[-1])
+                        if len(df) >= 20:
+                            ma["sma_20"] = float(closes.rolling(20).mean().iloc[-1])
+                            vol["avg_20"] = float(volumes.rolling(20).mean().iloc[-1])
+                        if len(df) >= 5:
+                            ma["sma_5"] = float(closes.rolling(5).mean().iloc[-1])
+                        if len(df) >= 1:
+                            vol["current"] = float(volumes.iloc[-1])
 
-                    # Basic details populator for rebalance view stability
-                    if ma.get("sma_5", 0) > ma.get("sma_20", 0):
-                        entry_details.append("단기 우상향 (5일 > 20일)")
+                        # Calculate technical entry score if we have at least 200 days of data
+                        if len(df) >= 200:
+                            # 1. S1: Moving Averages Alignment
+                            sma_5_val = ma["sma_5"]
+                            sma_20_val = ma["sma_20"]
+                            sma_200_val = ma["sma_200"]
+                            
+                            if sma_5_val > sma_20_val > sma_200_val:
+                                s1 = 1.0
+                                entry_details.append("5/20/200일선 정배열 (우상향)")
+                            elif sma_5_val < sma_20_val < sma_200_val:
+                                s1 = -1.0
+                                entry_details.append("5/20/200일선 역배열 (우하향)")
+                            else:
+                                s1 = 0.0
+                                entry_details.append("이평선 혼조세 (횡보)")
+                                
+                            # 2. S2: MACD Crossover
+                            ema_12 = closes.ewm(span=12, adjust=False).mean()
+                            ema_26 = closes.ewm(span=26, adjust=False).mean()
+                            macd = ema_12 - ema_26
+                            signal = macd.ewm(span=9, adjust=False).mean()
+                            
+                            if len(macd) >= 2:
+                                macd_today = float(macd.iloc[-1])
+                                signal_today = float(signal.iloc[-1])
+                                macd_yest = float(macd.iloc[-2])
+                                signal_yest = float(signal.iloc[-2])
+                                
+                                if pd.isna(macd_today) or pd.isna(signal_today) or pd.isna(macd_yest) or pd.isna(signal_yest):
+                                    s2 = 0.0
+                                elif macd_yest <= signal_yest and macd_today > signal_today and macd_today > 0:
+                                    s2 = 1.0
+                                    entry_details.append("MACD 골든크로스 감지")
+                                elif macd_yest >= signal_yest and macd_today < signal_today:
+                                    s2 = -1.0
+                                    entry_details.append("MACD 데드크로스 감지")
+                                else:
+                                    s2 = 0.0
+                            else:
+                                s2 = 0.0
+                                
+                            # 3. S3: Pullback RSI (14 days)
+                            delta = closes.diff()
+                            gain = delta.where(delta > 0, 0.0)
+                            loss = -delta.where(delta < 0, 0.0)
+                            avg_gain = gain.ewm(alpha=1/14, adjust=False).mean()
+                            avg_loss = loss.ewm(alpha=1/14, adjust=False).mean()
+                            
+                            if len(avg_gain) >= 1 and len(avg_loss) >= 1:
+                                avg_gain_val = float(avg_gain.iloc[-1])
+                                avg_loss_val = float(avg_loss.iloc[-1])
+                                
+                                if pd.isna(avg_gain_val) or pd.isna(avg_loss_val):
+                                    rsi_today = 50.0
+                                elif avg_loss_val == 0 and avg_gain_val == 0:
+                                    rsi_today = 50.0
+                                elif avg_loss_val == 0:
+                                    rsi_today = 100.0
+                                elif avg_gain_val == 0:
+                                    rsi_today = 0.0
+                                else:
+                                    rs = avg_gain_val / avg_loss_val
+                                    rsi_today = 100.0 - (100.0 / (1.0 + rs))
+                            else:
+                                rsi_today = 50.0
+                                
+                            if s1 == 1.0 and 40.0 <= rsi_today <= 50.0:
+                                s3 = 1.0
+                                entry_details.append("상승장 RSI 눌림목 조정 완료")
+                            elif rsi_today > 80.0:
+                                s3 = -1.0
+                                entry_details.append("RSI 과매수 경계 진입")
+                            else:
+                                s3 = 0.0
+                                
+                            # 4. S4: Volume
+                            avg_vol_20 = vol.get("avg_20", 0.0)
+                            current_vol = vol.get("current", 0.0)
+                            current_close = float(closes.iloc[-1])
+                            current_open = float(opens.iloc[-1])
+                            
+                            if (pd.isna(avg_vol_20) or pd.isna(current_vol) or 
+                                pd.isna(current_close) or pd.isna(current_open) or 
+                                avg_vol_20 <= 0):
+                                s4 = 0.0
+                            elif current_vol >= 1.5 * avg_vol_20 and current_close > current_open:
+                                s4 = 1.0
+                                entry_details.append("거래량 수반 돌파 양봉 감지")
+                            else:
+                                s4 = 0.0
+                                
+                            # Final Score & Mapping to 0-100 scale (int((FS + 1.0) * 50))
+                            final_score = (0.4 * s1) + (0.3 * s2) + (0.2 * s3) + (0.1 * s4)
+                            entry_score = int((final_score + 1.0) * 50 + 1e-9)
+                            entry_score = max(0, min(100, entry_score))
+                        else:
+                            entry_details.append("기술 지표 데이터 부족 (200일 미만)")
                     else:
-                        entry_details.append("단기 조정세 (5일 <= 20일)")
+                        entry_details.append("기술 지표 데이터 구조 오류 (필수 컬럼 누락)")
                 else:
                     entry_details.append("기술 지표 데이터 대기")
 
@@ -113,7 +231,7 @@ class QuantScorer:
                     "name": info.get("shortName") or ticker,
                     "current_price": current_price,
                     "fundamentals": fundamentals,
-                    "entry_score": 0,  # technical entry score is computed elsewhere
+                    "entry_score": entry_score,
                     "eval_score": eval_score,
                     "moving_averages": ma,
                     "volume": vol,
@@ -163,6 +281,21 @@ class QuantScorer:
         if preloaded_prices and ticker in preloaded_prices:
             df = preloaded_prices[ticker]
             if not df.empty:
+                # Handle MultiIndex if present
+                if isinstance(df.columns, pd.MultiIndex):
+                    df = df.copy()
+                    known_attrs = {"Close", "Open", "Volume", "High", "Low", "Adj Close"}
+                    new_columns = []
+                    for col_tuple in df.columns:
+                        matched = False
+                        for part in col_tuple:
+                            if part in known_attrs:
+                                new_columns.append(part)
+                                matched = True
+                                break
+                        if not matched:
+                            new_columns.append(col_tuple[-1] if col_tuple else "")
+                    df.columns = new_columns
                 return float(df["Close"].iloc[-1])
         # Fallback – retrieve the latest price via ``fast_info`` when available
         try:
