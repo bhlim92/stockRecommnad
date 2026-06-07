@@ -339,5 +339,16 @@
         </footer>
     </div>
     <script src="/app.js?v=3.0"></script>
+    <!-- Dynamic Version Fetcher -->
+    <script>
+        fetch('/api/version')
+            .then(res => res.json())
+            .then(data => {
+                const version = data.version || '3.3';
+                document.title = document.title.replace('{{VERSION}}', version);
+                document.body.innerHTML = document.body.innerHTML.replace(/\{\{VERSION\}\}/g, version);
+            })
+            .catch(err => console.error('Version fetch failed', err));
+    </script>
 </body>
 </html>
