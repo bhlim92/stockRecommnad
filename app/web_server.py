@@ -139,7 +139,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
 
-app = FastAPI(title="Stock Discovery Dashboard API (v2.5)", lifespan=lifespan)
+app = FastAPI(title="Stock Discovery Dashboard API (v3.3)", lifespan=lifespan)
 
 # Allow CORS for easy development
 app.add_middleware(
