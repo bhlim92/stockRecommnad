@@ -162,6 +162,7 @@ async def auth_middleware(request: Request, call_next):
         "/login.html", 
         "/api/auth/config", 
         "/api/auth/login", 
+        "/api/version",
         "/style.css", 
         "/app.js", 
         "/favicon.ico"
