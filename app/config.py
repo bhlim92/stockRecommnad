@@ -10,7 +10,7 @@ def get_app_version() -> str:
         with open(version_file, "r", encoding="utf-8") as f:
             return f.read().strip()
     except Exception:
-        return os.getenv("APP_VERSION", "3.3")
+        return os.getenv("APP_VERSION", "3.4")
 
 class AppConfig:
     APP_VERSION: str = get_app_version()
