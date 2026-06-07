@@ -1168,8 +1168,14 @@ class LoginRequest(BaseModel):
     credential: str
 
 @app.get("/api/auth/config")
-def auth_config() -> JSONResponse:
-    return JSONResponse(content={"client_id": get_google_client_id()})
+def get_auth_config():
+    """Returns the Google Client ID for frontend rendering"""
+    return {"client_id": AppConfig.GOOGLE_CLIENT_ID}
+
+@app.get("/api/version")
+def get_version():
+    """Returns the dynamic application version."""
+    return {"version": AppConfig.APP_VERSION}
 
 @app.post("/api/auth/login")
 def auth_login(payload: LoginRequest, request: Request) -> JSONResponse:
