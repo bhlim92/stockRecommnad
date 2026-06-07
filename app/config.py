@@ -68,7 +68,7 @@ class AppConfig:
         "talent": "@talentinvestment",
         "profhalf": "@profhalf",
         "softdragon": "@softdragon",
-        "kang": "@강환국"
+        "kang": "@강환�?
     }
 
     # Pre-resolved Channel ID Map (verified working RSS status 200)
@@ -81,5 +81,5 @@ class AppConfig:
         "@talentinvestment": "UCBM86JVoHLqg9irpR2XKvGw",
         "@profhalf": "UCczff_dQVVb9sSEULFUJ-sw",
         "@softdragon": "UCSPMRoAphbObUYeDaX367Fg",
-        "@강환국": "UCSWPuzlD337Y6VBkyFPwT8g"
+        "@강환�?: "UCSWPuzlD337Y6VBkyFPwT8g"
     }
