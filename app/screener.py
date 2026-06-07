@@ -389,11 +389,13 @@ class ScreenerManager:
                         res = score_res[ticker]
                         rationale = self._generate_rationale(ticker, res)
                         import pandas as pd
-                        df_ticker = preloaded_prices[ticker]
-                        sparkline_df = df_ticker.tail(20)
-                        
-                        sparkline_prices = [None if pd.isna(x) else x for x in sparkline_df['Close'].tolist()]
-                        sparkline_volumes = [None if pd.isna(x) else x for x in sparkline_df['Volume'].tolist()]
+                        df_ticker = preloaded_prices.get(ticker) if preloaded_prices is not None else None
+                        sparkline_prices = []
+                        sparkline_volumes = []
+                        if df_ticker is not None and not df_ticker.empty:
+                            sparkline_df = df_ticker.tail(20)
+                            sparkline_prices = [None if pd.isna(x) else x for x in sparkline_df['Close'].tolist()]
+                            sparkline_volumes = [None if pd.isna(x) else x for x in sparkline_df['Volume'].tolist()]
                         
                         return ticker, {
                             "current_price": res.get("current_price", 0.0),
