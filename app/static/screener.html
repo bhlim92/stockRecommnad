@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>퀀트 AI 종목 스크리너 | Quantum Dashboard (v{{VERSION}})</title>
+    <title>퀀트 AI 종목 스크리너 | Quantum Dashboard (v<span class="app-version">3.4</span>)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Main Style Link -->
@@ -311,7 +311,7 @@
         <!-- Header -->
         <div class="screener-header">
             <div class="screener-title">
-                <h1>🔍 퀀트 AI 종목 스크리너 (v{{VERSION}})</h1>
+                <h1>🔍 퀀트 AI 종목 스크리너 (v<span class="app-version">3.4</span>)</h1>
             </div>
             <div style="display: flex; gap: 15px; align-items: center;">
                 <button class="btn-header" id="btn-open-screener-settings">스크리너 설정 ⚙️</button>
@@ -457,7 +457,7 @@
                         <th class="sortable hide-on-mobile" data-col="entry_score" style="width: 130px;">진입 점수 <span id="sort-entry-indicator"></span></th>
                         <th class="sortable hide-on-mobile" data-col="eval_score" style="width: 130px;">평가 점수 <span id="sort-eval-indicator"></span></th>
                         <th class="sortable" data-col="total_score" style="width: 120px;">종합 점수 <span id="sort-total-indicator"></span></th>
-                        <th class="hide-on-mobile" style="width: 150px; text-align: center;">최근 20일 추이</th>
+                        <th style="width: 150px; text-align: center;">최근 20일 추이</th>
                         <th class="hide-on-mobile" style="width: 180px; text-align: center;">분석 일시</th>
                         <th>핵심 분석 근거</th>
                     </tr>
@@ -1090,7 +1090,16 @@
             loadLatestResults(activeMarket);
         });
     </script>
-    <!-- Dynamic Version Fetcher removed because server-side rendering already replaces {{VERSION}} and innerHTML assignment destroys event listeners -->
+    <script>
+        fetch('/api/version')
+            .then(response => response.json())
+            .then(data => {
+                if(data.version) {
+                    document.querySelectorAll('.app-version').forEach(el => el.textContent = data.version);
+                }
+            })
+            .catch(console.error);
+    </script>
     
     <!-- Detailed Chart Modal -->
     <div id="chart-modal" class="modal-overlay">

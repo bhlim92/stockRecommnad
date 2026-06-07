@@ -6,10 +6,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>퀀트 주식 추천 & 리밸런싱 대시보드 (v{{VERSION}})</title>
+    <title>퀀트 주식 추천 & 리밸런싱 대시보드 (v<span class="app-version">3.4</span>)</title>
     <!-- Google Fonts Inter & Orbitron for Tech Theme -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css?v={{VERSION}}">
+    <link rel="stylesheet" href="/style.css">
     <!-- Chart.js CDN for Visual Allocation -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -19,7 +19,7 @@
         <header class="app-header">
             <div class="logo-area">
                 <span class="pulse-ring"></span>
-                <h1>ANTIGRAVITY <span>QUANT</span> (v{{VERSION}})</h1>
+                <h1>ANTIGRAVITY <span>QUANT</span> (v<span class="app-version">3.4</span>)</h1>
             </div>
             <div class="system-status">
                 <a href="/screener.html" target="_blank" class="btn-header" style="text-decoration: none;">종목 스크리너 🔍</a>
@@ -342,6 +342,15 @@
         </footer>
     </div>
     <script src="/app.js?v=3.0"></script>
-    <!-- Dynamic Version Fetcher removed because server-side rendering already replaces {{VERSION}} and innerHTML assignment destroys event listeners -->
+    <script>
+        fetch('/api/version')
+            .then(response => response.json())
+            .then(data => {
+                if(data.version) {
+                    document.querySelectorAll('.app-version').forEach(el => el.textContent = data.version);
+                }
+            })
+            .catch(console.error);
+    </script>
 </body>
 </html>
