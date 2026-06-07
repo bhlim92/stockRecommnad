@@ -1,5 +1,6 @@
 import os
 import json
+import pandas as pd
 import threading
 import hmac
 import hashlib
@@ -648,20 +649,46 @@ def screener_stop() -> JSONResponse:
     return JSONResponse(content={"message": "Screener stop requested"})
 
 @app.get("/api/screener/history/{ticker}")
-def get_screener_history(ticker: str) -> JSONResponse:
+def get_screener_history(ticker: str, period: str = "1mo") -> JSONResponse:
     """Return recent price and volume arrays for the given ticker.
-    The data is used by the frontend Trend button to render a sparkline.
+    The data is used by the frontend Trend button to render a sparkline or detailed chart modal.
     """
     try:
         fetcher = AssetDataFetcher()
-        df = fetcher.fetch_historical_prices(ticker, period="1mo", interval="1d")
+        # Ensure period is safe
+        if period not in ["1mo", "3mo", "6mo", "1y", "2y", "5y", "max"]:
+            period = "1mo"
+            
+        df = fetcher.fetch_historical_prices(ticker, period=period, interval="1d")
         if df.empty:
             raise HTTPException(status_code=404, detail="No data found for ticker")
         
-        recent = df.tail(20)
-        prices = recent["Close"].astype(float).tolist()
-        volumes = recent["Volume"].astype(float).tolist()
-        return JSONResponse(content={"prices": prices, "volumes": volumes})
+        if period == "1y":
+            df["ma5"] = df["Close"].rolling(window=5).mean()
+            df["ma20"] = df["Close"].rolling(window=20).mean()
+            df["ma200"] = df["Close"].rolling(window=200).mean()
+            
+            dates = df.index.strftime('%Y-%m-%d').tolist()
+            prices = [None if pd.isna(x) else x for x in df["Close"]]
+            volumes = [None if pd.isna(x) else x for x in df["Volume"]]
+            ma5 = [None if pd.isna(x) else x for x in df["ma5"]]
+            ma20 = [None if pd.isna(x) else x for x in df["ma20"]]
+            ma200 = [None if pd.isna(x) else x for x in df["ma200"]]
+            
+            return JSONResponse(content={
+                "dates": dates,
+                "prices": prices,
+                "volumes": volumes,
+                "ma5": ma5,
+                "ma20": ma20,
+                "ma200": ma200
+            })
+        else:
+            # original sparkline response
+            recent = df.tail(20)
+            prices = recent["Close"].astype(float).tolist()
+            volumes = recent["Volume"].astype(float).tolist()
+            return JSONResponse(content={"prices": prices, "volumes": volumes})
     except Exception as e:
         logger.error(f"Failed to fetch history for {ticker}: {str(e)}")
         raise HTTPException(status_code=500, detail="Unable to retrieve ticker history")
