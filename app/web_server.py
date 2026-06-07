@@ -1168,9 +1168,9 @@ class LoginRequest(BaseModel):
     credential: str
 
 @app.get("/api/auth/config")
-def get_auth_config():
+def get_auth_config() -> JSONResponse:
     """Returns the Google Client ID for frontend rendering"""
-    return {"client_id": AppConfig.GOOGLE_CLIENT_ID}
+    return JSONResponse(content={"client_id": get_google_client_id()})
 
 @app.get("/api/version")
 def get_version():
