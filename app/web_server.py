@@ -101,17 +101,34 @@ async def scheduled_screener():
     logger.info("Starting background screener scheduler.")
     while True:
         now = datetime.now()
-        # Run on weekdays (0-4), every 2 hours, exactly at minute 0
-        if now.weekday() < 5 and now.hour % 2 == 0 and now.minute == 0:
-            logger.info("Triggering scheduled screener scans for sp500, kospi200, kosdaq...")
-            for market in ["sp500", "kospi200", "kosdaq"]:
-                manager = ScreenerManager()
-                if manager.state.get("status") != "running":
-                    logger.info(f"Scheduled scan starting for {market}...")
-                    manager.start_scan(market)
-                    # Poll until finished to prevent overlap
-                    while manager.state.get("status") == "running":
-                        await asyncio.sleep(10)
+        if now.minute == 0:
+            h = now.hour
+            w = now.weekday()
+            
+            markets_to_run = []
+            
+            # KOR market (KOSPI/KOSDAQ): Weekdays 10:00, 12:00, 14:00, 16:00 KST
+            if w < 5 and h in [10, 12, 14, 16]:
+                markets_to_run.extend(["kospi200", "kosdaq"])
+                
+            # US market (S&P 500): 
+            # 22:00 KST (Mon-Fri)
+            if w < 5 and h == 22:
+                markets_to_run.append("sp500")
+            # 00:00, 02:00, 04:00, 06:00 KST (Tue-Sat)
+            if 0 < w <= 5 and h in [0, 2, 4, 6]:
+                markets_to_run.append("sp500")
+                
+            if markets_to_run:
+                logger.info(f"Triggering scheduled screener scans for {markets_to_run}...")
+                for market in markets_to_run:
+                    manager = ScreenerManager()
+                    if manager.state.get("status") != "running":
+                        logger.info(f"Scheduled scan starting for {market}...")
+                        manager.start_scan(market)
+                        # Poll until finished to prevent overlap
+                        while manager.state.get("status") == "running":
+                            await asyncio.sleep(10)
         # Avoid double triggering in the same minute
         await asyncio.sleep(60)
 
