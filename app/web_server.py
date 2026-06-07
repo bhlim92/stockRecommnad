@@ -6,6 +6,8 @@ import hashlib
 import time
 import base64
 import requests
+import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Body, Request, status
 from fastapi.responses import FileResponse, JSONResponse
@@ -26,6 +28,7 @@ from app.recommender import RecommendationEngine
 from app.gdrive_uploader import GoogleDriveUploader
 from app.gspread_fetcher import fetch_portfolio_holdings
 from app.screener import ScreenerManager
+from app.database import get_top_screener_results
 
 logger = setup_logger("web_server", AppConfig.LOG_FILE_PATH, AppConfig.LOG_LEVEL)
 
@@ -94,7 +97,32 @@ def get_google_client_id() -> str:
             
     return "412232683452-rpuer01djkv705i304dc99l6u52taf2s.apps.googleusercontent.com"
 
-app = FastAPI(title="Stock Discovery Dashboard API (v2.5)")
+async def scheduled_screener():
+    logger.info("Starting background screener scheduler.")
+    while True:
+        now = datetime.now()
+        # Run on weekdays (0-4), every 2 hours, exactly at minute 0
+        if now.weekday() < 5 and now.hour % 2 == 0 and now.minute == 0:
+            logger.info("Triggering scheduled screener scans for sp500, kospi200, kosdaq...")
+            for market in ["sp500", "kospi200", "kosdaq"]:
+                manager = ScreenerManager()
+                if manager.state.get("status") != "running":
+                    logger.info(f"Scheduled scan starting for {market}...")
+                    manager.start_scan(market)
+                    # Poll until finished to prevent overlap
+                    while manager.state.get("status") == "running":
+                        await asyncio.sleep(10)
+        # Avoid double triggering in the same minute
+        await asyncio.sleep(60)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: trigger scheduler
+    asyncio.create_task(scheduled_screener())
+    yield
+    # Shutdown
+
+app = FastAPI(title="Stock Discovery Dashboard API (v2.5)", lifespan=lifespan)
 
 # Allow CORS for easy development
 app.add_middleware(
@@ -559,6 +587,12 @@ def trigger_run() -> JSONResponse:
 # ==============================
 # Stock Screener API Endpoints
 # ==============================
+
+@app.get("/api/screener/latest")
+def screener_latest(market: str = "sp500") -> JSONResponse:
+    """Return the most recent top 100 screener results from the DB for the given market."""
+    results = get_top_screener_results(limit=100, market=market)
+    return JSONResponse(content={"results": results})
 
 @app.post("/api/screener/start")
 def screener_start(req: dict) -> JSONResponse:

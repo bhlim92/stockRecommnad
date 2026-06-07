@@ -148,7 +148,7 @@ def save_screener_results(market: str, results: List[Dict[str, Any]]) -> bool:
         logger.error(f"Error during saving screener results to database: {str(e)}")
         return False
 
-def get_top_screener_results(limit: int = 10) -> List[Dict[str, Any]]:
+def get_top_screener_results(limit: int = 10, market: str = None) -> List[Dict[str, Any]]:
     """Retrieve the latest top screener results sorted by total_score."""
     global SessionLocal
     if SessionLocal is None:
@@ -157,7 +157,11 @@ def get_top_screener_results(limit: int = 10) -> List[Dict[str, Any]]:
     try:
         db = SessionLocal()
         # Find the latest scan time
-        latest_record = db.query(ScreenerResult).order_by(ScreenerResult.created_at.desc()).first()
+        query = db.query(ScreenerResult)
+        if market:
+            query = query.filter(ScreenerResult.market == market)
+            
+        latest_record = query.order_by(ScreenerResult.created_at.desc()).first()
         if not latest_record:
             db.close()
             return []
@@ -165,9 +169,11 @@ def get_top_screener_results(limit: int = 10) -> List[Dict[str, Any]]:
         latest_time = latest_record.created_at
         
         # Query results from that scan time
-        results = db.query(ScreenerResult).filter(
-            ScreenerResult.created_at == latest_time
-        ).order_by(ScreenerResult.total_score.desc()).limit(limit).all()
+        res_query = db.query(ScreenerResult).filter(ScreenerResult.created_at == latest_time)
+        if market:
+            res_query = res_query.filter(ScreenerResult.market == market)
+            
+        results = res_query.order_by(ScreenerResult.total_score.desc()).limit(limit).all()
         
         dict_results = []
         for r in results:

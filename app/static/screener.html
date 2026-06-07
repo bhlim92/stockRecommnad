@@ -506,10 +506,11 @@
             // Tab Click Handlers
             marketTabs.forEach(tab => {
                 tab.addEventListener("click", () => {
-                    if (btnStartScan.disabled) return; // Prevent tab change during active scan
+                    if (btnStartScan.disabled || currentScanStatus === "running") return; // Prevent tab change during active scan
                     marketTabs.forEach(t => t.classList.remove("active"));
                     tab.classList.add("active");
                     activeMarket = tab.getAttribute("data-market");
+                    loadLatestResults(activeMarket);
                 });
             });
 
@@ -738,9 +739,35 @@
                     if (!response.ok) throw new Error("진행 상황 조회 실패");
                     
                     const data = await response.json();
-                    updateUI(data);
+                    if (data.status === "idle" && allResults.length === 0 && !window.latestLoaded) {
+                        window.latestLoaded = true;
+                        await loadLatestResults(activeMarket);
+                    } else {
+                        updateUI(data);
+                    }
                 } catch (error) {
                     console.error("Status fetch error:", error);
+                }
+            }
+
+            async function loadLatestResults(market) {
+                try {
+                    const response = await fetch(`/api/screener/latest?market=${market}`);
+                    if (!response.ok) throw new Error("최신 결과 조회 실패");
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        allResults = data.results;
+                        renderTable();
+                        progressSection.classList.add("active");
+                        progressBar.style.width = `100%`;
+                        progressText.innerText = "DB에 저장된 가장 최근 스크리닝 결과를 불러왔습니다.";
+                        progressRatio.innerText = `${allResults.length} 종목`;
+                    } else {
+                        tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px 0; color: #718096;">DB에 저장된 스크리닝 결과가 없습니다. "스캔 시작"을 클릭하세요.</td></tr>`;
+                        progressSection.classList.remove("active");
+                    }
+                } catch (error) {
+                    console.error(error);
                 }
             }
 
@@ -774,8 +801,10 @@
                 logTerminal.scrollTop = logTerminal.scrollHeight;
 
                 // 2. State syncing
-                allResults = results;
-                activeMarket = market || activeMarket;
+                if (status !== "idle" || results.length > 0) {
+                    allResults = results;
+                    activeMarket = market || activeMarket;
+                }
 
                 // Update market tab UI active state to reflect backend choice
                 if (status === "running") {
