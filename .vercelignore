@@ -1,0 +1,14 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+tests/
+scratch/
+.git/
+.gitignore
+*.log
+main.py
+requirements.txt
+app/*.py
+pyproject.toml
+*.db
