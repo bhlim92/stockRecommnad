@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Main Style Link -->
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Screener Specific Overrides */
         body {
@@ -937,23 +939,30 @@
             function renderTable() {
                 if (!window.trendListenerAdded) {
                     tableBody.addEventListener('click', async (e) => {
-                        if (e.target && e.target.classList.contains('trend-btn')) {
-                            const btn = e.target;
+                        const btn = e.target.closest('.trend-btn');
+                        if (btn) {
                             const ticker = btn.dataset.ticker;
                             btn.disabled = true;
                             btn.innerText = 'Loading...';
                             try {
-                                const resp = await fetch(`/api/screener/history/${ticker}`);
+                                const resp = await fetch(`/api/screener/history/${ticker}?period=1mo`);
                                 if (!resp.ok) throw new Error('Failed to fetch history');
                                 const data = await resp.json();
                                 const svg = generateSparklineSVG(data.prices, data.volumes);
                                 const container = btn.parentElement;
-                                container.innerHTML = `<div class="sparkline-container">${svg}</div>`;
+                                container.innerHTML = `<div class="sparkline-container" data-ticker="${ticker}" title="상세 차트 보기">${svg}</div>`;
                             } catch (err) {
                                 console.error(err);
                                 btn.innerText = 'Error';
                                 btn.disabled = false;
                             }
+                            return;
+                        }
+                        
+                        const sparkline = e.target.closest('.sparkline-container');
+                        if (sparkline) {
+                            const ticker = sparkline.dataset.ticker;
+                            openChartModal(ticker);
                         }
                     });
                     window.trendListenerAdded = true;
@@ -1030,7 +1039,14 @@
                         entryHTML = `<span class="${entryClass}">${item.entry_score}</span><span style="color:#718096; font-size:0.75rem;">/100</span>`;
                         evalHTML = `<span class="${evalClass}">${item.eval_score}</span><span style="color:#718096; font-size:0.75rem;">/100</span>`;
                         totalHTML = `<span class="total-score-val">${item.total_score}</span>`;
-                        trendButtonHTML = `<button class="trend-btn" data-ticker="${item.symbol}">Trend</button>`;
+                        
+                        if (item.sparkline_prices && item.sparkline_prices.length > 0) {
+                            const svg = generateSparklineSVG(item.sparkline_prices, item.sparkline_volumes);
+                            trendButtonHTML = `<div class="sparkline-container" data-ticker="${item.symbol}" title="상세 차트 보기" style="cursor: pointer;">${svg}</div>`;
+                        } else {
+                            trendButtonHTML = `<button class="trend-btn" data-ticker="${item.symbol}">Trend</button>`;
+                        }
+                        
                         createdHTML = `<span style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem; color: #cbd5e1;">${item.created_at || '-'}</span>`;
                         rationaleHTML = `<span style="color: #e2e8f0;">${item.rationale}</span>`;
                     } else {
@@ -1075,5 +1091,152 @@
         });
     </script>
     <!-- Dynamic Version Fetcher removed because server-side rendering already replaces {{VERSION}} and innerHTML assignment destroys event listeners -->
+    
+    <!-- Detailed Chart Modal -->
+    <div id="chart-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" id="modal-close-btn">&times;</span>
+            <div class="modal-header" id="modal-title">Ticker Chart</div>
+            <div id="modal-loading" style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
+                야후 파이낸스 실시간 데이터 수집 중... <span class="pulse-ring" style="display: inline-block; margin-left: 10px;"></span>
+            </div>
+    <canvas id="detailChart" width="800" height="400" style="width: 100%; max-height: 50vh;"></canvas>
+        </div>
+    </div>
+    
+    <!-- Modal Logic -->
+    <script>
+        let detailChartInstance = null;
+        const modal = document.getElementById('chart-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalLoading = document.getElementById('modal-loading');
+        const canvas = document.getElementById('detailChart');
+        const closeBtn = document.getElementById('modal-close-btn');
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        async function openChartModal(ticker) {
+            modal.classList.add('active');
+            modalTitle.innerText = `${ticker.toUpperCase()} - 1Year Trend (MA5, MA20, MA200)`;
+            modalLoading.style.display = 'block';
+            canvas.style.display = 'none';
+
+            try {
+                const resp = await fetch(`/api/screener/history/${ticker}?period=1y`);
+                if (!resp.ok) throw new Error('Failed to fetch 1y history');
+                const data = await resp.json();
+                
+                modalLoading.style.display = 'none';
+                canvas.style.display = 'block';
+                
+                renderChartJs(data);
+            } catch (err) {
+                console.error(err);
+                modalLoading.innerText = '데이터 로딩 중 오류가 발생했습니다.';
+            }
+        }
+
+        function renderChartJs(data) {
+            if (detailChartInstance) {
+                detailChartInstance.destroy();
+            }
+            
+            const ctx = canvas.getContext('2d');
+            
+            detailChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: [
+                        {
+                            label: '주가 (Close)',
+                            data: data.prices,
+                            borderColor: '#00d2ff',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '5일선 (MA5)',
+                            data: data.ma5,
+                            borderColor: '#00ff66',
+                            borderWidth: 1.5,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '20일선 (MA20)',
+                            data: data.ma20,
+                            borderColor: '#f59e0b',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '200일선 (MA200)',
+                            data: data.ma200,
+                            borderColor: '#ff0055',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'bar',
+                            label: '거래량 (Volume)',
+                            data: data.volumes,
+                            backgroundColor: 'rgba(154, 162, 177, 0.3)',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9aa2b1' }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9aa2b1' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { display: false },
+                            min: 0,
+                            suggestedMax: Math.max(...data.volumes) * 3 // Keep volume bars at the bottom third
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#f1f3f9' } },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>

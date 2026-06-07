@@ -388,13 +388,22 @@ class ScreenerManager:
                     if ticker in score_res:
                         res = score_res[ticker]
                         rationale = self._generate_rationale(ticker, res)
+                        import pandas as pd
+                        df_ticker = preloaded_prices[ticker]
+                        sparkline_df = df_ticker.tail(20)
+                        
+                        sparkline_prices = [None if pd.isna(x) else x for x in sparkline_df['Close'].tolist()]
+                        sparkline_volumes = [None if pd.isna(x) else x for x in sparkline_df['Volume'].tolist()]
+                        
                         return ticker, {
                             "current_price": res.get("current_price", 0.0),
                             "entry_score": res.get("entry_score", 0),
                             "eval_score": res.get("eval_score", 0),
                             "total_score": res.get("entry_score", 0) + res.get("eval_score", 0),
                             "rationale": rationale,
-                            "name": res.get("name", ticker)
+                            "name": res.get("name", ticker),
+                            "sparkline_prices": sparkline_prices,
+                            "sparkline_volumes": sparkline_volumes
                         }, "success"
                 except Exception as e:
                     return ticker, None, f"error: {str(e)}"
