@@ -615,8 +615,8 @@ def trigger_run() -> JSONResponse:
 
 @app.get("/api/screener/latest")
 def screener_latest(market: str = "sp500") -> JSONResponse:
-    """Return the most recent top 100 screener results from the DB for the given market."""
-    results = get_top_screener_results(limit=100, market=market)
+    """Return the most recent top 500 screener results from the DB for the given market."""
+    results = get_top_screener_results(limit=500, market=market)
     return JSONResponse(content={"results": results})
 
 @app.post("/api/screener/start")
