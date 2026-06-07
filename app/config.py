@@ -4,7 +4,16 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+def get_app_version() -> str:
+    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "VERSION")
+    try:
+        with open(version_file, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except Exception:
+        return os.getenv("APP_VERSION", "3.3")
+
 class AppConfig:
+    APP_VERSION: str = get_app_version()
     # API credentials
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GOOGLE_APPLICATION_CREDENTIALS: str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")

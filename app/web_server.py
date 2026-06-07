@@ -10,7 +10,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Body, Request, status
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
@@ -139,7 +139,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
 
-app = FastAPI(title="Stock Discovery Dashboard API (v3.3)", lifespan=lifespan)
+app = FastAPI(title=f"Stock Discovery Dashboard API (v{AppConfig.APP_VERSION})", lifespan=lifespan)
 
 # Allow CORS for easy development
 app.add_middleware(
@@ -556,15 +556,21 @@ def run_pipeline_worker() -> None:
 # Static Web Routing
 # ==============================================================================
 
+def render_html_with_version(filepath: str) -> HTMLResponse:
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+    content = content.replace("{{VERSION}}", AppConfig.APP_VERSION)
+    return HTMLResponse(content=content)
+
 @app.get("/")
-def get_dashboard() -> FileResponse:
+def get_dashboard() -> HTMLResponse:
     """Serves the main dashboard user interface."""
-    return FileResponse("app/static/index.html")
+    return render_html_with_version("app/static/index.html")
 
 @app.get("/login.html")
-def get_login() -> FileResponse:
+def get_login() -> HTMLResponse:
     """Serves the Google sign-in login page."""
-    return FileResponse("app/static/login.html")
+    return render_html_with_version("app/static/login.html")
 
 @app.get("/style.css")
 def get_style() -> FileResponse:
@@ -575,9 +581,9 @@ def get_script() -> FileResponse:
     return FileResponse("app/static/app.js")
 
 @app.get("/screener.html")
-def get_screener() -> FileResponse:
+def get_screener() -> HTMLResponse:
     """Serves the Stock Screener UI page."""
-    return FileResponse("app/static/screener.html")
+    return render_html_with_version("app/static/screener.html")
 
 
 # ==============================================================================
